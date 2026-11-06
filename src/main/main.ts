@@ -5,6 +5,7 @@ import {
   nativeImage,
   nativeTheme,
   powerMonitor,
+  session,
   shell,
   ipcMain,
   screen,
@@ -344,6 +345,37 @@ setInterval(() => {
   }
 }, 30000)
 
+const devRendererUrl = () =>
+  app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL
+
+function contentSecurityPolicy() {
+  const dev = devRendererUrl()
+  if (!dev) {
+    return "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'"
+  }
+  const socket = dev.replace(/^http/, 'ws')
+  return [
+    "default-src 'none'",
+    `script-src 'self' 'unsafe-inline' ${dev}`,
+    `style-src 'self' 'unsafe-inline' ${dev}`,
+    `connect-src 'self' ${dev} ${socket}`,
+    `img-src 'self' data: ${dev}`,
+    `font-src 'self' ${dev}`,
+  ].join('; ')
+}
+
+function guardContent() {
+  const policy = contentSecurityPolicy()
+  session.defaultSession.webRequest.onHeadersReceived((details, done) => {
+    done({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [policy],
+      },
+    })
+  })
+}
+
 const windowBackground = () =>
   nativeTheme.shouldUseDarkColors ? '#0E0C0B' : '#F3EEE8'
 
@@ -381,7 +413,12 @@ function createWindow() {
       w.hide()
     }
   })
-  w.loadFile(path.join(import.meta.dirname, '../renderer/index.html'))
+  const dev = devRendererUrl()
+  if (dev) {
+    w.loadURL(dev + '/focus.html')
+  } else {
+    w.loadFile(path.join(import.meta.dirname, '../renderer/focus.html'))
+  }
 }
 
 nativeTheme.on('updated', () => {
@@ -404,6 +441,7 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  guardContent()
   nativeTheme.themeSource = savedTheme()
   tray = new Tray(nativeImage.createEmpty())
   createWindow()
