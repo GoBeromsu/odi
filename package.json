@@ -10,10 +10,11 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "icon": "node scripts/make-icon.mjs",
+    "dist": "pnpm build && electron-builder --mac"
   },
   "dependencies": {
-    "electron": "45.2.3",
     "get-windows": "10.0.0"
   },
   "packageManager": "pnpm@10.32.1",
@@ -29,6 +30,8 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.19.2",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
     "esbuild": "0.28.2",
     "eslint": "10.14.0",
     "globals": "17.14.0",
@@ -36,5 +39,38 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1"
   },
-  "type": "module"
+  "type": "module",
+  "build": {
+    "appId": "com.gobeomsu.ody",
+    "productName": "ody",
+    "copyright": "ody",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/get-windows/main"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "target": [
+        {
+          "target": "dmg"
+        },
+        {
+          "target": "zip"
+        }
+      ],
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "ody reads the URL of the frontmost browser tab to record which site you work on."
+      }
+    }
+  }
 }

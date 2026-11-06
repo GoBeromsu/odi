@@ -40,7 +40,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/main/**', 'src/preload/**', 'src/shared/**', '*.mjs'],
+    files: [
+      'src/main/**',
+      'src/preload/**',
+      'src/shared/**',
+      '*.mjs',
+      'scripts/**',
+    ],
     languageOptions: { globals: globals.node },
   },
   {
