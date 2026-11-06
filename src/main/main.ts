@@ -1,4 +1,4 @@
-const {
+import {
   app,
   BrowserWindow,
   Tray,
@@ -8,58 +8,79 @@ const {
   shell,
   ipcMain,
   screen,
-} = require('electron')
-const fs = require('fs')
-const path = require('path')
-const S = require('./session')
-const { readFront } = require('./track')
+} from 'electron'
+import fs from 'node:fs'
+import path from 'node:path'
+import * as S from '../shared/session.ts'
+import type { Segment, Session, Sampled } from '../shared/session.ts'
+import type {
+  SessionDetail,
+  SessionSummary,
+  Theme,
+  View,
+} from '../shared/api.ts'
+import { mmss } from '../shared/time.ts'
+import { readFront } from './track.ts'
 
-if (process.env.ODY_USER_DATA)
+if (process.env.ODY_USER_DATA) {
   app.setPath('userData', process.env.ODY_USER_DATA)
+}
+
+interface SessionFile {
+  started_at: number
+  ended_at?: number | null
+  planned_duration: number
+  paused_seconds: number
+  segments: Segment[]
+  status: string
+}
 
 const SESSION_ID = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/
-const THEMES = ['system', 'light', 'dark']
+const THEMES: readonly Theme[] = ['system', 'light', 'dark']
+const isTheme = (t: unknown): t is Theme => THEMES.includes(t as Theme)
 const SAMPLE_GIVE_UP_MS = 3000
 
 const cfg = S.config(process.env)
 const now = () => Date.now() / 1000
-let win,
-  tray,
-  s = null,
-  timer = null,
+let win: BrowserWindow | undefined,
+  tray: Tray,
+  s: Session | null = null,
+  timer: NodeJS.Timeout | undefined,
   finalized = false,
   quitting = false
 let inflight = false,
   lastSampleAt = 0,
   tickAt = 0,
   maxGap = 0,
-  power = []
+  power: { event: string; at: number; last_tick: number }[] = []
 
 const sessionsDir = () => path.join(app.getPath('userData'), 'sessions')
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json')
-const sessionId = () =>
-  new Date(s.start * 1000).toISOString().replace(/[:.]/g, '-')
-const file = () => path.join(sessionsDir(), sessionId() + '.json')
+const sessionId = (x: Session) =>
+  new Date(x.start * 1000).toISOString().replace(/[:.]/g, '-')
+const file = (x: Session) => path.join(sessionsDir(), sessionId(x) + '.json')
 
-function writeJsonAtomic(target, data) {
+function writeJsonAtomic(target: string, data: unknown) {
   fs.mkdirSync(path.dirname(target), { recursive: true })
   fs.writeFileSync(target + '.tmp', JSON.stringify(data, null, 2))
   fs.renameSync(target + '.tmp', target)
 }
 
-function write(status) {
-  writeJsonAtomic(file(), {
-    id: sessionId(),
-    ...S.doc(s),
+function write(x: Session, status: string) {
+  writeJsonAtomic(file(x), {
+    id: sessionId(x),
+    ...S.doc(x),
     status,
     diagnostics: { max_tick_gap: maxGap, power },
   })
 }
 
-function readSessionFile(id) {
-  if (!SESSION_ID.test(id)) return null
+function readSessionFile(id: string): SessionFile | null {
+  if (!SESSION_ID.test(id)) {
+    return null
+  }
   try {
-    const d = JSON.parse(
+    const d: SessionFile = JSON.parse(
       fs.readFileSync(path.join(sessionsDir(), id + '.json'), 'utf8')
     )
     const wellFormed =
@@ -74,12 +95,12 @@ function readSessionFile(id) {
   }
 }
 
-const closedAt = d =>
+const closedAt = (d: SessionFile) =>
   d.ended_at ?? d.segments[d.segments.length - 1]?.ended_at ?? d.started_at
 
-function listSessions() {
-  const running = s && !s.ended ? sessionId() : null
-  let names = []
+function listSessions(): SessionSummary[] {
+  const running = s && !s.ended ? sessionId(s) : null
+  let names: string[]
   try {
     names = fs.readdirSync(sessionsDir())
   } catch {
@@ -89,8 +110,11 @@ function listSessions() {
     .filter(n => n.endsWith('.json'))
     .map(n => n.slice(0, -'.json'.length))
     .filter(id => id !== running)
-    .map(id => [id, readSessionFile(id)])
-    .filter(([, d]) => d && d.segments.length > 0)
+    .map(id => [id, readSessionFile(id)] as const)
+    .filter(
+      (e): e is readonly [string, SessionFile] =>
+        e[1] !== null && e[1].segments.length > 0
+    )
     .map(([id, d]) => ({
       id,
       started_at: d.started_at,
@@ -105,9 +129,11 @@ function listSessions() {
     .sort((a, b) => b.started_at - a.started_at)
 }
 
-function readSessionDetail(id) {
+function readSessionDetail(id: string): SessionDetail | null {
   const d = readSessionFile(id)
-  if (!d) return null
+  if (!d) {
+    return null
+  }
   try {
     return {
       id,
@@ -124,19 +150,19 @@ function readSessionDetail(id) {
   }
 }
 
-function savedTheme() {
+function savedTheme(): Theme {
   try {
     const { theme } = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'))
-    return THEMES.includes(theme) ? theme : 'system'
+    return isTheme(theme) ? theme : 'system'
   } catch {
     return 'system'
   }
 }
 
-const mmss = n => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-
-function view() {
-  if (!s || s.ended) return { phase: 'idle', planned: cfg.planned }
+function view(): View {
+  if (!s || s.ended) {
+    return { phase: 'idle', planned: cfg.planned }
+  }
   return {
     phase: s.pausedAt === null ? 'running' : 'paused',
     planned: s.planned,
@@ -145,43 +171,52 @@ function view() {
 }
 
 function push() {
-  if (win && !win.isDestroyed()) win.webContents.send('state', view())
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('state', view())
+  }
 }
 
-function sendEnded(id) {
-  if (win && !win.isDestroyed()) win.webContents.send('ended', id)
+function sendEnded(id: string) {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('ended', id)
+  }
 }
 
-function alertUser() {
+function alertUser(x: Session) {
   ;[0, 350, 700].forEach(ms => setTimeout(() => shell.beep(), ms))
   if (win && !win.isDestroyed()) {
     win.show()
     win.focus()
   }
-  sendEnded(sessionId())
+  sendEnded(sessionId(x))
 }
 
 function after() {
-  if (!s) return
+  if (!s) {
+    return
+  }
   if (s.ended && !finalized) {
     finalized = true
     clearInterval(timer)
-    write(s.stopped ? 'stopped' : 'ended')
+    write(s, s.stopped ? 'stopped' : 'ended')
     tray.setTitle('')
     push()
   } else if (!s.ended) {
     tray.setTitle((s.pausedAt === null ? '' : '⏸ ') + mmss(S.remaining(s)))
     push()
   }
-  if (S.takeAlert(s)) alertUser()
+  if (S.takeAlert(s)) {
+    alertUser(s)
+  }
 }
 
-function maybeSample(t) {
-  if (inflight || t - lastSampleAt < 2 || !S.canSample(s)) return
+function maybeSample(sess: Session, t: number) {
+  if (inflight || t - lastSampleAt < 2 || !S.canSample(sess)) {
+    return
+  }
   inflight = true
   lastSampleAt = t
-  const sess = s,
-    gen = s.gen
+  const gen = sess.gen
   const real = readFront()
   const clearInflightOnlyWhenReallySettled = () => {
     inflight = false
@@ -192,29 +227,41 @@ function maybeSample(t) {
   )
   Promise.race([
     real,
-    new Promise(r => setTimeout(r, SAMPLE_GIVE_UP_MS, null)),
-  ]).then(r => {
-    if (r && s === sess && S.sample(s, now(), gen, r)) after()
+    new Promise<null>(r => setTimeout(r, SAMPLE_GIVE_UP_MS, null)),
+  ]).then((r: Sampled | null) => {
+    if (r && s === sess && S.sample(sess, now(), gen, r)) {
+      after()
+    }
   })
 }
 
-function tick() {
+function tick(sess: Session) {
   const t = now()
-  if (tickAt) maxGap = Math.max(maxGap, Math.floor(t) - Math.floor(tickAt))
+  if (tickAt) {
+    maxGap = Math.max(maxGap, Math.floor(t) - Math.floor(tickAt))
+  }
   tickAt = t
-  S.tick(s, t, powerMonitor.getSystemIdleTime())
-  if (!s.ended) maybeSample(t)
+  S.tick(sess, t, powerMonitor.getSystemIdleTime())
+  if (!sess.ended) {
+    maybeSample(sess, t)
+  }
   after()
 }
 
-for (const [name, fn] of [
+const POWER_EVENTS: [
+  'suspend' | 'resume' | 'lock-screen' | 'unlock-screen',
+  (x: Session, t: number) => void,
+][] = [
   ['suspend', S.suspend],
   ['resume', S.wake],
   ['lock-screen', S.lock],
   ['unlock-screen', S.unlock],
-]) {
-  powerMonitor.on(name, () => {
-    if (!s) return
+]
+for (const [name, fn] of POWER_EVENTS) {
+  powerMonitor.on(name as 'suspend', () => {
+    if (!s) {
+      return
+    }
     power.push({
       event: name,
       at: Math.floor(now()),
@@ -229,23 +276,26 @@ for (const [name, fn] of [
 ipcMain.handle('state', view)
 
 ipcMain.handle('start', () => {
-  if (s && !s.ended) return
-  s = S.create(now(), cfg.planned, cfg.idle)
+  if (s && !s.ended) {
+    return
+  }
+  const sess = S.create(now(), cfg.planned, cfg.idle)
+  s = sess
   finalized = false
   inflight = false
   lastSampleAt = 0
   tickAt = 0
   maxGap = 0
   power = []
-  timer = setInterval(tick, 1000)
-  tick()
-  write('in_progress')
+  timer = setInterval(() => tick(sess), 1000)
+  tick(sess)
+  write(sess, 'in_progress')
 })
 
 ipcMain.handle('pause', () => {
   if (s && !s.ended) {
     S.pause(s, now())
-    write('in_progress')
+    write(s, 'in_progress')
     after()
   }
 })
@@ -257,33 +307,41 @@ ipcMain.handle('resume', () => {
 })
 
 ipcMain.handle('stop', () => {
-  if (!s || s.ended) return
-  const id = sessionId()
+  if (!s || s.ended) {
+    return
+  }
+  const id = sessionId(s)
   S.stop(s, now())
   if (s.stopped && S.segments(s).length === 0) {
     clearInterval(timer)
-    fs.rmSync(file(), { force: true })
+    fs.rmSync(file(s), { force: true })
     s = null
     tray.setTitle('')
     push()
     return
   }
   after()
-  if (s.stopped) sendEnded(id)
+  if (s.stopped) {
+    sendEnded(id)
+  }
 })
 
 ipcMain.handle('sessions', listSessions)
-ipcMain.handle('session', (_e, id) => readSessionDetail(id))
+ipcMain.handle('session', (_e, id: string) => readSessionDetail(id))
 
 ipcMain.handle('theme', () => nativeTheme.themeSource)
-ipcMain.handle('setTheme', (_e, theme) => {
-  if (!THEMES.includes(theme)) throw new Error('invalid theme')
+ipcMain.handle('setTheme', (_e, theme: unknown) => {
+  if (!isTheme(theme)) {
+    throw new Error('invalid theme')
+  }
   writeJsonAtomic(settingsFile(), { theme })
   nativeTheme.themeSource = theme
 })
 
 setInterval(() => {
-  if (s && !s.ended) write('in_progress')
+  if (s && !s.ended) {
+    write(s, 'in_progress')
+  }
 }, 30000)
 
 const windowBackground = () =>
@@ -296,7 +354,7 @@ function createWindow() {
   const a = d.workArea,
     width = Math.min(900, a.width),
     height = Math.min(760, a.height)
-  win = new BrowserWindow({
+  const w = new BrowserWindow({
     width,
     height,
     minWidth: 420,
@@ -304,38 +362,45 @@ function createWindow() {
     x: a.x + Math.round((a.width - width) / 2),
     y: a.y + Math.round((a.height - height) / 2),
     backgroundColor: windowBackground(),
-    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const }
+      : {}),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(import.meta.dirname, '../preload/preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
   })
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-  win.webContents.on('will-navigate', e => e.preventDefault())
-  win.on('close', e => {
+  win = w
+  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  w.webContents.on('will-navigate', e => e.preventDefault())
+  w.on('close', e => {
     if (!quitting && s && !s.ended) {
       e.preventDefault()
-      win.hide()
+      w.hide()
     }
   })
-  win.loadFile('index.html')
+  w.loadFile(path.join(import.meta.dirname, '../renderer/index.html'))
 }
 
 nativeTheme.on('updated', () => {
-  if (win && !win.isDestroyed()) win.setBackgroundColor(windowBackground())
+  if (win && !win.isDestroyed()) {
+    win.setBackgroundColor(windowBackground())
+  }
 })
 
 app.on('before-quit', () => {
   quitting = true
   if (s && !finalized) {
     S.advance(s, now())
-    write(s.ended ? 'ended' : 'in_progress')
+    write(s, s.ended ? 'ended' : 'in_progress')
   }
 })
 app.on('activate', () => {
-  if (win && !win.isDestroyed()) win.show()
+  if (win && !win.isDestroyed()) {
+    win.show()
+  }
 })
 
 app.whenReady().then(() => {

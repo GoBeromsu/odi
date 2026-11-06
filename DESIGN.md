@@ -217,8 +217,17 @@ CSS 사용자 정의 속성으로 `tokens.css`에 둔다. 이름 규칙은 `colo
 - 화면별 렌더 증거: 타이머(대기, 진행, 일시정지), 기록(비어 있음, 목록과 상세, 중단됨), 설정을 라이트와 다크에서 스크린샷으로 남긴다.
 - 폭 증거: 900x760, 420x560.
 - 동작 증거: 짧은 실제 세션을 CDP로 몰아 시작, 일시정지, 재개, 자연 종료, 기록 이동, 직접 중단, 0초 중단, 테마 재시작 유지를 확인한다.
-- 모델 증거: `pnpm test`, `node session.check.js <저장 파일>`.
+- 모델 증거: `pnpm test`, `node src/shared/session.check.ts <저장 파일>`.
 - 한계: 스크린샷은 사용자의 집중 유지를 증명하지 않는다. 실제 25분 세션과 실제 신호음은 사용자가 확인한다. CDP의 합성 마우스는 드래그 영역 위 실제 커서의 레일 호버를 증명하지 않는다. OS 다크 전환에 따른 시스템 모드와 메뉴바 숫자의 실제 표시는 자동 검증하지 않았다.
+
+## Engineering
+
+- 소스는 `src/main`, `src/preload`, `src/renderer`, `src/shared`의 TypeScript다. 빌드 산출물은 `out/`이고 `package.json`의 `main`은 `out/main/main.js`다.
+- 타입 검사는 `tsc --noEmit`(`pnpm typecheck`), 산출은 esbuild(`pnpm build`)가 맡는다. `pnpm start`는 빌드 뒤 실행한다.
+- 메인은 ESM(`module: nodenext`), 프리로드는 샌드박스 때문에 CJS(`preload.cts`가 `preload.cjs`로 나온다), 렌더러는 `<script type="module">` 하나로 번들한다. `get-windows`는 동적 `import()`와 외부 패키지로 둔다.
+- 계층은 ESLint `no-restricted-imports`가 강제한다. 렌더러는 electron, node, main, preload를 못 가져오고, 메인은 렌더러를, shared는 모든 프로세스 계층을 못 가져온다.
+- 코드 주석은 두지 않는다. 로컬 ESLint 규칙 `local/no-comments`가 주석이 있으면 실패시킨다.
+- 테스트는 `node --test`다. `session.check.ts`는 저장 파일 검증기로도 쓴다.
 
 ## Accepted Debt
 

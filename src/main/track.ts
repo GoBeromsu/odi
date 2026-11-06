@@ -1,6 +1,21 @@
-'use strict'
-const { execFile } = require('child_process')
-const BROWSER_BY_LOWERCASE_BUNDLE_ID = {
+import { execFile } from 'node:child_process'
+
+interface Browser {
+  id: string
+  name: string
+  tab: string
+}
+interface Front {
+  app: string
+  bundle_id: string | null
+}
+interface Run {
+  err: (Error & { killed?: boolean }) | null
+  out: string
+  errOut: string
+}
+
+const BROWSER_BY_LOWERCASE_BUNDLE_ID: Record<string, Browser> = {
   'at.studio.asidebrowser': {
     id: 'at.studio.AsideBrowser',
     name: 'Aside',
@@ -28,8 +43,8 @@ const BROWSER_BY_LOWERCASE_BUNDLE_ID = {
   },
 }
 
-const run = (cmd, args, ms) =>
-  new Promise(resolve =>
+const run = (cmd: string, args: string[], ms: number) =>
+  new Promise<Run>(resolve =>
     execFile(
       cmd,
       args,
@@ -43,17 +58,22 @@ const run = (cmd, args, ms) =>
     )
   )
 
-let gw
-async function frontApp() {
+let gw: typeof import('get-windows') | undefined
+async function frontApp(): Promise<Front | null> {
   try {
     gw = gw || (await import('get-windows'))
     const w = await gw.activeWindow({
       accessibilityPermission: false,
       screenRecordingPermission: false,
     })
-    if (w && w.owner) return { app: w.owner.name, bundle_id: w.owner.bundleId }
+    if (w && w.owner) {
+      return {
+        app: w.owner.name,
+        bundle_id: 'bundleId' in w.owner ? w.owner.bundleId : null,
+      }
+    }
   } catch (e) {
-    console.error('get-windows:', e.message)
+    console.error('get-windows:', (e as Error).message)
   }
   const front = (await run('lsappinfo', ['front'], 1500)).out
   const info = (
@@ -67,7 +87,7 @@ async function frontApp() {
     id = /bundleID="([^"]+)"/.exec(info)
   return name ? { app: name[1], bundle_id: id ? id[1] : null } : null
 }
-function host(url) {
+function host(url: string) {
   try {
     const u = new URL(url)
     return /^https?:$/.test(u.protocol)
@@ -78,8 +98,8 @@ function host(url) {
   }
 }
 
-const lastErr = {}
-async function domainOf(b) {
+const lastErr: Record<string, string> = {}
+async function domainOf(b: Browser) {
   const r = await run(
     'osascript',
     [
@@ -103,14 +123,16 @@ async function domainOf(b) {
 async function readFront() {
   try {
     const a = await frontApp()
-    if (!a) return null
+    if (!a) {
+      return null
+    }
     const b =
       a.bundle_id && BROWSER_BY_LOWERCASE_BUNDLE_ID[a.bundle_id.toLowerCase()]
     return { ...a, domain: b ? await domainOf(b) : null }
   } catch (e) {
-    console.error('readFront:', e.message)
+    console.error('readFront:', (e as Error).message)
     return null
   }
 }
 
-module.exports = { readFront, host }
+export { readFront, host }

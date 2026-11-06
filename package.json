@@ -2,10 +2,13 @@
   "name": "ody",
   "version": "0.1.0",
   "private": true,
-  "main": "main.js",
+  "main": "out/main/main.js",
   "scripts": {
-    "start": "electron .",
-    "test": "node session.check.js",
+    "build": "node build.mjs",
+    "start": "pnpm build && electron .",
+    "test": "node --test src/shared/session.check.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -16,13 +19,22 @@
   "packageManager": "pnpm@10.32.1",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "electron"
+      "electron",
+      "esbuild"
     ],
     "ignoredBuiltDependencies": [
       "get-windows"
     ]
   },
   "devDependencies": {
-    "prettier": "3.9.10"
-  }
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1"
+  },
+  "type": "module"
 }

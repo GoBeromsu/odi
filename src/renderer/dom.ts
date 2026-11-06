@@ -1,17 +1,29 @@
-;(() => {
-  const SVG_NS = 'http://www.w3.org/2000/svg'
-  const h = (tag, text, ...kids) => {
-    const e = document.createElement(tag)
-    if (text != null) e.textContent = text
-    e.append(...kids)
-    return e
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
+export const h = <K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  text?: string | null,
+  ...kids: (Node | string)[]
+) => {
+  const e = document.createElement(tag)
+  if (text !== undefined && text !== null) {
+    e.textContent = text
   }
-  const svg = (tag, attrs = {}, ...kids) => {
-    const e = document.createElementNS(SVG_NS, tag)
-    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v)
-    e.append(...kids)
-    return e
+  e.append(...kids)
+  return e
+}
+
+export const svg = (
+  tag: string,
+  attrs: Record<string, string | number> = {},
+  ...kids: Element[]
+) => {
+  const e = document.createElementNS(SVG_NS, tag)
+  for (const [k, v] of Object.entries(attrs)) {
+    e.setAttribute(k, String(v))
   }
-  const mmss = n => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`
-  globalThis.OdyDom = { h, svg, mmss }
-})()
+  e.append(...kids)
+  return e
+}
+
+export { mmss } from '../shared/time.ts'
