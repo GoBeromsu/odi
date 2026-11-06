@@ -1,5 +1,6 @@
+import type { Locale } from './i18n/index.ts'
 import type { Mode, Phase } from './session.ts'
-import type { BrowserAuth, Settings } from './settings.ts'
+import type { BrowserAuth, Language, Settings } from './settings.ts'
 
 export type { Mode, Phase }
 
@@ -9,6 +10,12 @@ export type HealthReason = 'automation-denied' | 'tracker-failed'
 export interface Health {
   state: HealthState
   reason?: HealthReason
+}
+
+export interface LanguageView {
+  setting: Language
+  system: Locale
+  locale: Locale
 }
 
 export interface View {
@@ -44,4 +51,7 @@ export interface OdyApi {
   patchSettings: (changes: Partial<Settings>) => Promise<Settings>
   onSettings: (cb: (s: Settings) => void) => void
   requestBrowserAuth: () => Promise<BrowserAuth>
+  language: () => Promise<LanguageView>
+  setLanguage: (value: Language) => Promise<LanguageView>
+  onLanguage: (cb: (view: LanguageView) => void) => void
 }

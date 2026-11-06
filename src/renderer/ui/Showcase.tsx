@@ -20,7 +20,9 @@ import {
   type Material,
   type Skin,
 } from '../../shared/settings.ts'
+import { useT } from '../i18n.ts'
 import { Button } from './Button.tsx'
+import { LanguageSelect } from './LanguageSelect.tsx'
 import { Empty } from './Empty.tsx'
 import { Icon } from './Icon.tsx'
 import { IconButton } from './IconButton.tsx'
@@ -35,6 +37,7 @@ const THEMES = ['light', 'dark'] as const
 type Theme = (typeof THEMES)[number]
 
 export function Showcase() {
+  const { t, locale, duration, date, relativeDay } = useT()
   const [skin, setSkin] = useState<Skin>('ambient')
   const [theme, setTheme] = useState<Theme>('light')
   const [material, setMaterial] = useState<Material>('glass')
@@ -197,6 +200,18 @@ export function Showcase() {
                 />
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="showcase-section" data-section="language">
+          <h2>Language</h2>
+          <div className="ui-card showcase-row">
+            <LanguageSelect onChange={value => window.ody.setLanguage(value)} />
+            <span data-lang-locale="">{locale}</span>
+            <span data-lang-today="">{relativeDay(new Date())}</span>
+            <span data-lang-label="">{t('activity.heroFocus')}</span>
+            <span data-lang-date="">{date(new Date(), 'day')}</span>
+            <span data-lang-duration="">{duration(3 * 3600 + 240)}</span>
           </div>
         </section>
 

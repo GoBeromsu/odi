@@ -21,6 +21,11 @@ const api: OdyApi = {
     ipcRenderer.on('settings', (_e, s) => cb(s))
   },
   requestBrowserAuth: () => ipcRenderer.invoke('requestBrowserAuth'),
+  language: () => ipcRenderer.invoke('language'),
+  setLanguage: value => ipcRenderer.invoke('setLanguage', value),
+  onLanguage: cb => {
+    ipcRenderer.on('language-changed', (_e, view) => cb(view))
+  },
 }
 
 contextBridge.exposeInMainWorld('ody', api)

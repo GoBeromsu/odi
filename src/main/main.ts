@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   ipcMain,
+  Menu,
   nativeImage,
   nativeTheme,
   Notification,
@@ -10,9 +11,15 @@ import {
   Tray,
 } from 'electron'
 import path from 'node:path'
-import type { Health, View } from '../shared/api.ts'
+import type { Health, LanguageView, View } from '../shared/api.ts'
+import {
+  resolveLanguage,
+  systemLocale,
+  t,
+  type MessageKey,
+} from '../shared/i18n/index.ts'
 import type { Mode } from '../shared/session.ts'
-import type { Settings } from '../shared/settings.ts'
+import type { Language, Settings } from '../shared/settings.ts'
 import { clock } from '../shared/time.ts'
 import { requestBrowserAuth } from './permissions.ts'
 import { openSettings } from './settings.ts'
@@ -30,9 +37,14 @@ if (process.env.ODY_USER_DATA) {
   app.setPath('userData', process.env.ODY_USER_DATA)
 }
 
-const BOUNDARY_TITLE: Record<Mode, string> = {
-  focus: '집중 시간이 끝났어요',
-  break: '휴식이 끝났어요',
+const BOUNDARY_TITLE: Record<Mode, MessageKey> = {
+  focus: 'notify.focusEnded',
+  break: 'notify.breakEnded',
+}
+
+const TRAY_FAULT: Record<string, MessageKey> = {
+  'automation-denied': 'tray.automationDenied',
+  'tracker-failed': 'tray.trackerFailed',
 }
 
 const seconds = (value: string | undefined) => {
@@ -71,6 +83,39 @@ const broadcast = (channel: string, payload: unknown) => {
   }
 }
 
+const preferredSystemLanguage = () =>
+  process.env.ODY_SYSTEM_LANGUAGE ?? app.getPreferredSystemLanguages()[0]
+
+const languageView = (): LanguageView => {
+  const setting = settings().get().language
+  const preferred = preferredSystemLanguage()
+  return {
+    setting,
+    system: systemLocale(preferred),
+    locale: resolveLanguage(setting, preferred),
+  }
+}
+
+const say = (key: MessageKey) => t(languageView().locale, key)
+
+const health = (): Health => watcher?.health() ?? { state: 'paused' }
+
+const paintTrayState = () => {
+  if (!tray) {
+    return
+  }
+  const now = health()
+  const key: MessageKey = now.reason
+    ? TRAY_FAULT[now.reason]
+    : now.state === 'paused'
+      ? 'tray.paused'
+      : 'tray.recording'
+  tray.setToolTip(say(key))
+  tray.setContextMenu(
+    Menu.buildFromTemplate([{ label: say('menu.quit'), role: 'quit' }])
+  )
+}
+
 const applySettings = (changes: Partial<Settings>) => {
   const next = settings().patch(changes)
   if (changes.mode !== undefined) {
@@ -79,11 +124,13 @@ const applySettings = (changes: Partial<Settings>) => {
   if (changes.launchAtLogin !== undefined) {
     app.setLoginItemSettings({ openAtLogin: next.launchAtLogin })
   }
+  if (changes.language !== undefined) {
+    broadcast('language-changed', languageView())
+  }
+  paintTrayState()
   broadcast('settings', next)
   return next
 }
-
-const health = (): Health => watcher?.health() ?? { state: 'paused' }
 
 const plannedFor = (mode: Mode) => {
   const s = settings().get()
@@ -106,7 +153,7 @@ const announce = (mode: Mode) => {
     return
   }
   new Notification({
-    title: BOUNDARY_TITLE[mode],
+    title: say(BOUNDARY_TITLE[mode]),
     silent: settings().get().sound === 'none',
   }).show()
 }
@@ -148,6 +195,11 @@ ipcMain.handle('requestBrowserAuth', () =>
     patch: changes => applySettings(changes),
   })
 )
+ipcMain.handle('language', languageView)
+ipcMain.handle('setLanguage', (_e, value: Language) => {
+  applySettings({ language: value })
+  return languageView()
+})
 
 const devRendererUrl = () =>
   app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL
@@ -206,7 +258,10 @@ function startWatching() {
     browserFor,
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
     now,
-    onHealth: next => broadcast('health', next),
+    onHealth: next => {
+      paintTrayState()
+      broadcast('health', next)
+    },
   })
   watcher = w
   const leave = () => w.suspend(now())
@@ -242,6 +297,7 @@ app.whenReady().then(() => {
   app.setLoginItemSettings({ openAtLogin: current.launchAtLogin })
   app.dock?.hide()
   tray = new Tray(nativeImage.createEmpty())
+  paintTrayState()
   setInterval(() => timer.tick(), 1000)
   startWatching()
   createWindow()

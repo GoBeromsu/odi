@@ -97,6 +97,41 @@
   cursor: default;
 }
 
+.ui-popup {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--step-2);
+  height: 28px;
+  min-width: 150px;
+  padding: 0 8px 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--win);
+  color: var(--ink);
+  font: 500 12.5px var(--font);
+}
+
+.ui-popup:hover {
+  border-color: color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
+.ui-popup select {
+  position: absolute;
+  inset: 0;
+  appearance: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ui-popup-value {
+  flex: 1;
+}
+
+.ui-popup svg {
+  color: var(--mute);
+}
+
 .ui-kbd {
   display: inline-flex;
   align-items: center;
