@@ -1,0 +1,28 @@
+{
+  "name": "ody",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node session.check.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "electron": "45.2.3",
+    "get-windows": "10.0.0"
+  },
+  "packageManager": "pnpm@10.32.1",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ],
+    "ignoredBuiltDependencies": [
+      "get-windows"
+    ]
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}
