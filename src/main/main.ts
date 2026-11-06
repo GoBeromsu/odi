@@ -22,6 +22,7 @@ import type {
 } from '../shared/api.ts'
 import { mmss } from '../shared/time.ts'
 import { readFront } from './track.ts'
+import { openStore, type Store } from './store.ts'
 
 if (process.env.ODY_USER_DATA) {
   app.setPath('userData', process.env.ODY_USER_DATA)
@@ -56,6 +57,12 @@ let inflight = false,
   power: { event: string; at: number; last_tick: number }[] = []
 
 const sessionsDir = () => path.join(app.getPath('userData'), 'sessions')
+
+let store: Store | undefined
+const database = () => {
+  store ??= openStore(path.join(app.getPath('userData'), 'ody.db'))
+  return store
+}
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json')
 const sessionId = (x: Session) =>
   new Date(x.start * 1000).toISOString().replace(/[:.]/g, '-')
@@ -441,6 +448,17 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  const imported = database().importJson(sessionsDir())
+  if (!imported.already) {
+    console.log(
+      'store: imported',
+      imported.sessions,
+      'sessions and',
+      imported.events,
+      'events, skipped',
+      imported.skipped.length
+    )
+  }
   guardContent()
   nativeTheme.themeSource = savedTheme()
   tray = new Tray(nativeImage.createEmpty())
