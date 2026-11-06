@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
-import type { Health } from '../../shared/api.ts'
+import type { Health, NotifyStatus } from '../../shared/api.ts'
 import type { MessageKey } from '../../shared/i18n/index.ts'
 import {
   ACCENT_OPTIONS,
@@ -90,10 +90,12 @@ export function Settings() {
   const { t, duration } = useT()
   const settings = useSettings()
   const [health, setHealth] = useState<Health>({ state: 'recording' })
+  const [notifications, setNotifications] = useState<NotifyStatus>('unavailable')
 
   useEffect(() => {
     ody.onHealth(setHealth)
     void ody.health().then(setHealth)
+    void ody.notifyStatus().then(setNotifications)
   }, [])
 
   const minutes = (values: readonly number[]) =>
@@ -104,6 +106,8 @@ export function Settings() {
 
   const denied =
     health.reason === 'automation-denied' || settings.browserAuth === 'denied'
+  const notifyGranted =
+    notifications === 'authorized' || notifications === 'provisional'
 
   return (
     <div className="act-main set" data-tab="settings">
@@ -258,6 +262,18 @@ export function Settings() {
                     {t('settings.statusDomainNeeded')}
                   </>
                 ) : null}
+                <span
+                  className="set-dot"
+                  data-tone={notifyGranted ? 'ok' : 'no'}
+                  data-notify={notifications}
+                />
+                <span data-notify-label="">
+                  {t(
+                    notifyGranted
+                      ? 'settings.statusNotificationsOn'
+                      : 'settings.statusNotificationsOff'
+                  )}
+                </span>
               </span>
             }
           >

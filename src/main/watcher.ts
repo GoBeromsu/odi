@@ -40,6 +40,10 @@ export function createWatcher(deps: WatcherDeps) {
     if (fault) {
       return { state: 'error', reason: fault }
     }
+    const settings = deps.settings()
+    if (settings.browserConsent && settings.browserAuth === 'denied') {
+      return { state: 'error', reason: 'automation-denied' }
+    }
     return awayStart === null ? { state: 'recording' } : { state: 'paused' }
   }
 

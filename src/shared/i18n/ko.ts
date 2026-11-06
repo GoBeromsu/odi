@@ -109,6 +109,8 @@ export const ko = {
   'settings.status': '상태',
   'settings.statusRecording': '앱 기록 중',
   'settings.statusDomainNeeded': '브라우저 도메인 권한 필요',
+  'settings.statusNotificationsOn': '알림 허용됨',
+  'settings.statusNotificationsOff': '알림 꺼짐',
   'settings.openPrivacy': '개인정보 설정 열기',
   'settings.idleThreshold': '자리 비움 판단',
   'settings.idleThresholdHint':

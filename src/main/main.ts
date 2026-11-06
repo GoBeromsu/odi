@@ -18,6 +18,8 @@ import type {
   Health,
   HealthReason,
   LanguageView,
+  OnboardingStep,
+  StepState,
   View,
 } from '../shared/api.ts'
 import {
@@ -29,6 +31,7 @@ import {
 import type { Mode } from '../shared/session.ts'
 import type { Language, Settings } from '../shared/settings.ts'
 import { clock } from '../shared/time.ts'
+import { askNotifications, isNotifyGranted } from './notify.ts'
 import { requestBrowserAuth } from './permissions.ts'
 import { openSettings } from './settings.ts'
 import { openStore, type Store } from './store.ts'
@@ -39,6 +42,7 @@ import { createWatcher, type Watcher } from './watcher.ts'
 import {
   createActivityWindow,
   createMiniWindow,
+  createOnboardingWindow,
   createPopoverWindow,
   loadPage,
   placeUnder,
@@ -87,6 +91,7 @@ let tray: Tray | undefined
 let popover: BrowserWindow | undefined
 let mini: BrowserWindow | undefined
 let activity: BrowserWindow | undefined
+let onboarding: BrowserWindow | undefined
 let store: Store | undefined
 let settingsStore: ReturnType<typeof openSettings> | undefined
 let watcher: Watcher | undefined
@@ -244,6 +249,20 @@ function openActivity(tab: ActivityTab) {
   activity.webContents.send('activity-tab', tab)
 }
 
+function openOnboarding() {
+  if (onboarding && !onboarding.isDestroyed()) {
+    onboarding.show()
+    return onboarding
+  }
+  const w = createOnboardingWindow()
+  onboarding = w
+  void loadPage(w, 'onboarding.html')
+  w.on('closed', () => {
+    onboarding = undefined
+  })
+  return w
+}
+
 function refreshShortcut(accelerator: string) {
   globalShortcut.unregisterAll()
   try {
@@ -364,6 +383,56 @@ ipcMain.handle('requestBrowserAuth', () =>
     patch: changes => applySettings(changes),
   })
 )
+const notifyBinary = () =>
+  process.env.ODY_NOTIFY_HELPER ??
+  path.join(path.dirname(app.getPath('exe')), 'ody-notify-auth')
+
+const stepUpdate = (step: OnboardingStep, state: StepState) => {
+  if (onboarding && !onboarding.isDestroyed()) {
+    onboarding.webContents.send('onboarding-step', { step, state })
+  }
+}
+
+async function grantAll() {
+  const results: Record<OnboardingStep, StepState> = {
+    frontApp: 'idle',
+    browsers: 'idle',
+    notifications: 'idle',
+    loginItem: 'idle',
+  }
+  const settle = (step: OnboardingStep, granted: boolean) => {
+    results[step] = granted ? 'granted' : 'denied'
+    stepUpdate(step, results[step])
+  }
+
+  stepUpdate('frontApp', 'waiting')
+  settle('frontApp', (await readFrontApp()) !== null)
+
+  stepUpdate('browsers', 'waiting')
+  const auth = await requestBrowserAuth({
+    settings: () => settings().get(),
+    patch: changes => applySettings(changes),
+  })
+  settle('browsers', auth === 'granted')
+
+  stepUpdate('notifications', 'waiting')
+  settle('notifications', isNotifyGranted(await askNotifications(notifyBinary())))
+
+  stepUpdate('loginItem', 'waiting')
+  applySettings({ launchAtLogin: true })
+  settle('loginItem', app.getLoginItemSettings().openAtLogin)
+
+  return results
+}
+
+ipcMain.handle('notifyStatus', () => askNotifications(notifyBinary()))
+ipcMain.handle('grantAll', grantAll)
+ipcMain.handle('finishOnboarding', (_e, skipped: boolean) => {
+  applySettings({ onboarded: true })
+  console.log('onboarding finished, skipped:', skipped === true)
+  onboarding?.close()
+  showPopover()
+})
 ipcMain.handle('openPrivacy', () =>
   shell.openExternal(PRIVACY_PANE).catch((e: Error) => {
     console.error('openPrivacy:', e.message)
@@ -477,6 +546,11 @@ app.whenReady().then(() => {
   if (showcaseRoute()) {
     const w = createActivityWindow()
     void loadPage(w, 'showcase.html')
+    return
+  }
+  if (!current.onboarded) {
+    popoverWindow()
+    openOnboarding()
     return
   }
   showPopover()

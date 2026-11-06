@@ -14,6 +14,26 @@ export interface Health {
   reason?: HealthReason
 }
 
+export type OnboardingStep =
+  | 'frontApp'
+  | 'browsers'
+  | 'notifications'
+  | 'loginItem'
+
+export type StepState = 'idle' | 'waiting' | 'granted' | 'denied'
+
+export interface StepProgress {
+  step: OnboardingStep
+  state: StepState
+}
+
+export type NotifyStatus =
+  | 'authorized'
+  | 'denied'
+  | 'notDetermined'
+  | 'provisional'
+  | 'unavailable'
+
 export interface Appearance {
   dark: boolean
 }
@@ -91,6 +111,10 @@ export interface OdyApi {
   onAppearance: (cb: (a: Appearance) => void) => void
   requestBrowserAuth: () => Promise<BrowserAuth>
   openPrivacy: () => Promise<void>
+  notifyStatus: () => Promise<NotifyStatus>
+  grantAll: () => Promise<Record<OnboardingStep, StepState>>
+  finishOnboarding: (skipped: boolean) => Promise<void>
+  onOnboardingStep: (cb: (progress: StepProgress) => void) => void
   language: () => Promise<LanguageView>
   setLanguage: (value: Language) => Promise<LanguageView>
   onLanguage: (cb: (view: LanguageView) => void) => void

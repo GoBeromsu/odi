@@ -31,6 +31,7 @@ export default defineConfig({
           focus: at('src/renderer/focus.html'),
           mini: at('src/renderer/mini.html'),
           activity: at('src/renderer/activity.html'),
+          onboarding: at('src/renderer/onboarding.html'),
           showcase: at('src/renderer/showcase.html'),
         },
       },

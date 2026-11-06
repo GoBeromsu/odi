@@ -37,6 +37,12 @@ const api: OdyApi = {
   },
   requestBrowserAuth: () => ipcRenderer.invoke('requestBrowserAuth'),
   openPrivacy: () => ipcRenderer.invoke('openPrivacy'),
+  notifyStatus: () => ipcRenderer.invoke('notifyStatus'),
+  grantAll: () => ipcRenderer.invoke('grantAll'),
+  finishOnboarding: skipped => ipcRenderer.invoke('finishOnboarding', skipped),
+  onOnboardingStep: cb => {
+    ipcRenderer.on('onboarding-step', (_e, progress) => cb(progress))
+  },
   language: () => ipcRenderer.invoke('language'),
   setLanguage: value => ipcRenderer.invoke('setLanguage', value),
   onLanguage: cb => {

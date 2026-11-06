@@ -215,3 +215,38 @@ test('start samples every second on its own interval', async () => {
   h.watcher.stop()
   expect(h.events()).toEqual([['active', 1000, 1004, 'Finder', null]])
 })
+
+test('a refused authorization from the request flow surfaces as automation-denied', async () => {
+  const h = keep(setup({ browserConsent: true, browserAuth: 'granted' }))
+  h.state.front = SAFARI
+  await h.span(1000, 1001)
+  const askedWhileGranted = h.asked.length
+  expect(askedWhileGranted).toBeGreaterThan(0)
+  expect(h.watcher.health()).toStrictEqual({ state: 'recording' })
+
+  h.state.settings = coerceSettings({
+    ...h.state.settings,
+    browserAuth: 'denied',
+  })
+  expect(h.watcher.health()).toStrictEqual({
+    state: 'error',
+    reason: 'automation-denied',
+  })
+  await h.span(1002, 1004)
+  expect(h.asked).toHaveLength(askedWhileGranted)
+  expect(h.healths.at(-1)).toStrictEqual({
+    state: 'error',
+    reason: 'automation-denied',
+  })
+
+  h.state.settings = coerceSettings({
+    ...h.state.settings,
+    browserAuth: 'granted',
+  })
+  expect(h.watcher.health()).toStrictEqual({ state: 'recording' })
+})
+
+test('consent that was never requested stays healthy', async () => {
+  const h = keep(setup({ browserConsent: false, browserAuth: 'denied' }))
+  expect(h.watcher.health()).toStrictEqual({ state: 'recording' })
+})

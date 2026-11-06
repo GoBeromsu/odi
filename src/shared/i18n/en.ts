@@ -113,6 +113,8 @@ export const en: typeof ko = {
   'settings.status': 'Status',
   'settings.statusRecording': 'Recording apps',
   'settings.statusDomainNeeded': 'Browser domain permission needed',
+  'settings.statusNotificationsOn': 'Notifications allowed',
+  'settings.statusNotificationsOff': 'Notifications off',
   'settings.openPrivacy': 'Open privacy settings',
   'settings.idleThreshold': 'Away threshold',
   'settings.idleThresholdHint':

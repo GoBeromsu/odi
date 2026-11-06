@@ -60,6 +60,7 @@ export function createPopoverWindow() {
   return harden(
     new BrowserWindow({
       ...anchoredTopRight(320, 380),
+      show: false,
       frame: false,
       transparent: true,
       resizable: false,

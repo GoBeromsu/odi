@@ -5,6 +5,7 @@
   "main": "out/main/main.js",
   "scripts": {
     "dev": "ODY_QA_DISPLAY=portrait-right electron-vite dev --watch",
+    "prebuild": "sh scripts/build-notify-helper.sh",
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "test": "vitest run",
@@ -67,6 +68,12 @@
     ],
     "asarUnpack": [
       "node_modules/get-windows/main"
+    ],
+    "extraFiles": [
+      {
+        "from": "build/bin/ody-notify-auth",
+        "to": "MacOS/ody-notify-auth"
+      }
     ],
     "mac": {
       "category": "public.app-category.productivity",
