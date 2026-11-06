@@ -30,6 +30,7 @@ export default defineConfig({
         input: {
           focus: at('src/renderer/focus.html'),
           activity: at('src/renderer/activity.html'),
+          showcase: at('src/renderer/showcase.html'),
         },
       },
     },

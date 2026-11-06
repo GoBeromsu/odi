@@ -6,7 +6,6 @@ import {
   nativeTheme,
   Notification,
   powerMonitor,
-  screen,
   session,
   Tray,
 } from 'electron'
@@ -21,6 +20,11 @@ import { openStore, type Store } from './store.ts'
 import { createTimer, type PersistedSession } from './timer.ts'
 import { browserFor, readDomain, readFrontApp } from './track.ts'
 import { createWatcher, type Watcher } from './watcher.ts'
+import {
+  createActivityWindow,
+  createPopoverWindow,
+  loadPage,
+} from './windows.ts'
 
 if (process.env.ODY_USER_DATA) {
   app.setPath('userData', process.env.ODY_USER_DATA)
@@ -176,48 +180,14 @@ function guardContent() {
   })
 }
 
-const windowBackground = () =>
-  nativeTheme.shouldUseDarkColors ? '#0b0c0e' : '#f6f8f7'
+const showcaseRoute = () => !app.isPackaged && process.env.ODY_SHOWCASE === '1'
 
 function createWindow() {
-  const display = screen.getPrimaryDisplay()
-  const area = display.workArea
-  const width = Math.min(900, area.width)
-  const height = Math.min(760, area.height)
-  const w = new BrowserWindow({
-    width,
-    height,
-    minWidth: 420,
-    minHeight: 560,
-    x: area.x + Math.round((area.width - width) / 2),
-    y: area.y + Math.round((area.height - height) / 2),
-    backgroundColor: windowBackground(),
-    ...(process.platform === 'darwin'
-      ? { titleBarStyle: 'hiddenInset' as const }
-      : {}),
-    webPreferences: {
-      preload: path.join(import.meta.dirname, '../preload/preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  })
+  const showcase = showcaseRoute()
+  const w = showcase ? createActivityWindow() : createPopoverWindow()
   win = w
-  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-  w.webContents.on('will-navigate', e => e.preventDefault())
-  const dev = devRendererUrl()
-  if (dev) {
-    w.loadURL(dev + '/focus.html')
-  } else {
-    w.loadFile(path.join(import.meta.dirname, '../renderer/focus.html'))
-  }
+  loadPage(w, showcase ? 'showcase.html' : 'focus.html')
 }
-
-nativeTheme.on('updated', () => {
-  if (win && !win.isDestroyed()) {
-    win.setBackgroundColor(windowBackground())
-  }
-})
 
 app.on('before-quit', () => {
   if (!timer.idle()) {
