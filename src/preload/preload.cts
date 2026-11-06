@@ -6,17 +6,48 @@ const api: OdyApi = {
   onState: cb => {
     ipcRenderer.on('state', (_e, v) => cb(v))
   },
-  start: () => ipcRenderer.invoke('start'),
+  openActivity: tab => ipcRenderer.invoke('openActivity', tab),
+  showPopover: () => ipcRenderer.invoke('showPopover'),
+  onSheet: cb => {
+    ipcRenderer.on('open-sheet', () => cb())
+  },
+  onActivityTab: cb => {
+    ipcRenderer.on('activity-tab', (_e, tab) => cb(tab))
+  },
+  start: (mode, planned) => ipcRenderer.invoke('start', mode, planned),
   pause: () => ipcRenderer.invoke('pause'),
   resume: () => ipcRenderer.invoke('resume'),
   stop: () => ipcRenderer.invoke('stop'),
-  sessions: () => ipcRenderer.invoke('sessions'),
-  session: id => ipcRenderer.invoke('session', id),
-  onEnded: cb => {
-    ipcRenderer.on('ended', (_e, id) => cb(id))
+  sessions: (from, to) => ipcRenderer.invoke('sessions', from, to),
+  events: (from, to) => ipcRenderer.invoke('events', from, to),
+  totals: (from, to) => ipcRenderer.invoke('totals', from, to),
+  recordedDays: (from, to) => ipcRenderer.invoke('recordedDays', from, to),
+  health: () => ipcRenderer.invoke('health'),
+  onHealth: cb => {
+    ipcRenderer.on('health', (_e, h) => cb(h))
   },
-  theme: () => ipcRenderer.invoke('theme'),
-  setTheme: v => ipcRenderer.invoke('setTheme', v),
+  settings: () => ipcRenderer.invoke('settings'),
+  patchSettings: changes => ipcRenderer.invoke('patchSettings', changes),
+  onSettings: cb => {
+    ipcRenderer.on('settings', (_e, s) => cb(s))
+  },
+  appearance: () => ipcRenderer.invoke('appearance'),
+  onAppearance: cb => {
+    ipcRenderer.on('appearance', (_e, a) => cb(a))
+  },
+  requestBrowserAuth: () => ipcRenderer.invoke('requestBrowserAuth'),
+  openPrivacy: () => ipcRenderer.invoke('openPrivacy'),
+  notifyStatus: () => ipcRenderer.invoke('notifyStatus'),
+  grantAll: () => ipcRenderer.invoke('grantAll'),
+  finishOnboarding: skipped => ipcRenderer.invoke('finishOnboarding', skipped),
+  onOnboardingStep: cb => {
+    ipcRenderer.on('onboarding-step', (_e, progress) => cb(progress))
+  },
+  language: () => ipcRenderer.invoke('language'),
+  setLanguage: value => ipcRenderer.invoke('setLanguage', value),
+  onLanguage: cb => {
+    ipcRenderer.on('language-changed', (_e, view) => cb(view))
+  },
 }
 
 contextBridge.exposeInMainWorld('ody', api)

@@ -4,11 +4,15 @@
   "private": true,
   "main": "out/main/main.js",
   "scripts": {
-    "build": "node build.mjs",
-    "start": "pnpm build && electron .",
-    "test": "node --test src/shared/session.check.ts",
+    "dev": "ODY_QA_DISPLAY=portrait-right electron-vite dev --watch",
+    "prebuild": "sh scripts/build-notify-helper.sh",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "test": "vitest run",
+    "bench:store": "node scripts/bench-store.ts",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "dist": "pnpm build && electron-builder --mac"
@@ -29,14 +33,26 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
     "electron": "45.2.3",
     "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
     "esbuild": "0.28.2",
     "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.14.0",
+    "happy-dom": "21.0.4",
+    "lucide-react": "1.70.0",
+    "playwright": "1.65.0",
     "prettier": "3.9.10",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
   },
   "type": "module",
   "build": {
@@ -54,6 +70,12 @@
     "asarUnpack": [
       "node_modules/get-windows/main"
     ],
+    "extraFiles": [
+      {
+        "from": "build/bin/ody-notify-auth",
+        "to": "MacOS/ody-notify-auth"
+      }
+    ],
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.png",
@@ -68,7 +90,8 @@
         }
       ],
       "extendInfo": {
-        "NSAppleEventsUsageDescription": "ody reads the URL of the frontmost browser tab to record which site you work on."
+        "NSAppleEventsUsageDescription": "ody reads the URL of the frontmost browser tab to record which site you work on.",
+        "LSUIElement": true
       }
     }
   }

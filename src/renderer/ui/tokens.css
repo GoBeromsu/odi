@@ -1,0 +1,364 @@
+:root {
+  color-scheme: light dark;
+
+  --font:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --mono: 'SF Mono', ui-monospace, Menlo, monospace;
+
+  --spring: linear(
+    0,
+    0.009,
+    0.035 2.1%,
+    0.141 4.4%,
+    0.723 12.9%,
+    0.938 16.7%,
+    1.017 19.4%,
+    1.067,
+    1.099 24.3%,
+    1.108 26%,
+    1.103 28.1%,
+    1.07 32.5%,
+    0.998 41%,
+    0.982 44.6%,
+    0.977 48.6%,
+    0.99 58.6%,
+    1.001 69%,
+    1
+  );
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease: var(--ease-out);
+  --fast: 120ms;
+  --base: 200ms;
+  --slow: 320ms;
+
+  --bg: light-dark(#e6e9e8, #050607);
+  --win: light-dark(#f6f8f7, #0b0c0e);
+  --surface: light-dark(#ffffff, #121416);
+  --sunk: light-dark(#eef1f0, #08090b);
+  --ink: light-dark(#0e1211, #f3f4f6);
+  --mute: light-dark(#666f6c, #7d8589);
+  --line: light-dark(#dfe4e2, #1d2023);
+  --acc: light-dark(#00a991, #00c2a8);
+  --acc-text: color-mix(in srgb, var(--acc) 70%, var(--ink));
+  --acc-ink: #04140f;
+  --face: light-dark(#fbfcfc, #0f1113);
+  --body: light-dark(#e3e8e6, #17191c);
+  --tick: light-dark(#0e1211, #e9ecee);
+  --a1: light-dark(#00a991, #00c2a8);
+  --a2: light-dark(#3a7bd5, #4f8cff);
+  --a3: light-dark(#7a5af5, #9a7bff);
+  --a4: light-dark(#e8a33c, #ffb347);
+  --a5: light-dark(#e5484d, #ff6369);
+  --a6: light-dark(#1f9fc4, #2bb7e0);
+  --a7: light-dark(#7d8784, #8b9397);
+  --a8: light-dark(#d93f8f, #ff5cb0);
+
+  --radius-window: 14px;
+  --radius-card: 12px;
+  --radius-control: 9px;
+  --radius-chip: 999px;
+  --radius-dot: 50%;
+
+  --step-1: 4px;
+  --step-2: 8px;
+  --step-3: 12px;
+  --step-4: 16px;
+  --step-5: 24px;
+  --step-6: 32px;
+
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgb(0 0 0 / 7%);
+  --elev-2: 0 1px 2px rgb(0 0 0 / 8%), 0 12px 28px -18px rgb(0 0 0 / 35%);
+  --elev-3:
+    0 1px 0 rgb(255 255 255 / 25%) inset, 0 30px 60px -24px rgb(0 0 0 / 40%),
+    0 2px 8px rgb(0 0 0 / 8%);
+
+  --led-face: #0d0d0e;
+  --led-off: #2a1f1d;
+  --led-ink: #9cc8ff;
+  --led-mark: #7fb6ff;
+
+  --glass-surface: color-mix(in srgb, var(--surface) 72%, transparent);
+  --glass-side: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 82%, transparent),
+    color-mix(in srgb, var(--sunk) 88%, transparent)
+  );
+  --glass-line: color-mix(in srgb, var(--ink) 9%, transparent);
+  --blur-card: blur(24px) saturate(160%);
+  --blur-side: blur(50px) saturate(190%);
+  --hover-wash: color-mix(in srgb, var(--ink) 6%, transparent);
+  --press-scale: 0.97;
+}
+
+[data-skin='ambient'] {
+  color-scheme: light;
+  --bg: #e6e9e8;
+  --win: #f6f8f7;
+  --surface: #ffffff;
+  --sunk: #eef1f0;
+  --ink: #0e1211;
+  --mute: #666f6c;
+  --line: #dfe4e2;
+  --acc: #00a991;
+  --acc-ink: #04140f;
+  --face: #fbfcfc;
+  --body: #e3e8e6;
+  --tick: #0e1211;
+  --a1: #00a991;
+  --a2: #3a7bd5;
+  --a3: #7a5af5;
+  --a4: #e8a33c;
+  --a5: #e5484d;
+  --a6: #1f9fc4;
+  --a7: #7d8784;
+  --a8: #d93f8f;
+}
+[data-skin='ambient'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #050607;
+  --win: #0b0c0e;
+  --surface: #121416;
+  --sunk: #08090b;
+  --ink: #f3f4f6;
+  --mute: #7d8589;
+  --line: #1d2023;
+  --acc: #00c2a8;
+  --face: #0f1113;
+  --body: #17191c;
+  --tick: #e9ecee;
+  --a1: #00c2a8;
+  --a2: #4f8cff;
+  --a3: #9a7bff;
+  --a4: #ffb347;
+  --a5: #ff6369;
+  --a6: #2bb7e0;
+  --a7: #8b9397;
+  --a8: #ff5cb0;
+}
+
+[data-skin='fukasawa'] {
+  color-scheme: light;
+  --bg: #ece9e3;
+  --win: #f7f5f1;
+  --surface: #fbfaf7;
+  --sunk: #efece6;
+  --ink: #1f1e1c;
+  --mute: #6d6a64;
+  --line: #e2ded6;
+  --acc: #d0352b;
+  --acc-ink: #fff;
+  --face: #fbfaf6;
+  --body: #e9e6df;
+  --tick: #3a3835;
+  --a1: #c2412d;
+  --a2: #2f6f9f;
+  --a3: #4d7a4f;
+  --a4: #c98a2b;
+  --a5: #6b5a8e;
+  --a6: #3f8a86;
+  --a7: #8a8378;
+  --a8: #b43f6b;
+}
+[data-skin='fukasawa'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121110;
+  --win: #1b1a18;
+  --surface: #22211e;
+  --sunk: #181715;
+  --ink: #ecebe6;
+  --mute: #8f8b84;
+  --line: #2e2c29;
+  --acc: #e0493c;
+  --face: #1f1e1b;
+  --body: #2a2926;
+  --tick: #d9d6cf;
+  --a1: #e05a43;
+  --a2: #4f93c7;
+  --a3: #6fa46f;
+  --a4: #e0a64a;
+  --a5: #9682c2;
+  --a6: #57b0aa;
+  --a7: #a69e92;
+  --a8: #e0689a;
+}
+
+[data-skin='ataraxia'] {
+  color-scheme: light;
+  --bg: #efe8ea;
+  --win: #fbf8f9;
+  --surface: #ffffff;
+  --sunk: #f6f0f2;
+  --ink: #2a2530;
+  --mute: #726a76;
+  --line: #efe6ea;
+  --acc: #a52142;
+  --acc-ink: #fff;
+  --face: #fffdfd;
+  --body: #ebe2e5;
+  --tick: #2a2530;
+  --a1: #a52142;
+  --a2: #3d8bd4;
+  --a3: #4f9a6a;
+  --a4: #e8a33c;
+  --a5: #6d4f8e;
+  --a6: #2f8f8a;
+  --a7: #7d7482;
+  --a8: #8e3f8e;
+}
+[data-skin='ataraxia'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #141115;
+  --win: #1c181d;
+  --surface: #241f26;
+  --sunk: #19161a;
+  --ink: #f1ecef;
+  --mute: #9a909f;
+  --line: #342d36;
+  --acc: #d0466a;
+  --face: #221d23;
+  --body: #2c262e;
+  --tick: #e9e2e6;
+  --a1: #d0466a;
+  --a2: #5aa3e6;
+  --a3: #67b383;
+  --a4: #f0b457;
+  --a5: #9a7cc0;
+  --a6: #4fb2ac;
+  --a7: #a89eac;
+  --a8: #c56fd0;
+}
+
+[data-skin='graphite'] {
+  color-scheme: light;
+  --bg: #e9eaec;
+  --win: #fafafb;
+  --surface: #ffffff;
+  --sunk: #f3f3f5;
+  --ink: #17181b;
+  --mute: #6c6e77;
+  --line: #e4e5e8;
+  --acc: #3b6ef5;
+  --acc-ink: #fff;
+  --face: #ffffff;
+  --body: #e2e3e6;
+  --tick: #17181b;
+  --a1: #3b6ef5;
+  --a2: #e5484d;
+  --a3: #30a46c;
+  --a4: #f5a524;
+  --a5: #8e4ec6;
+  --a6: #12a594;
+  --a7: #80838d;
+  --a8: #e5399f;
+}
+[data-skin='graphite'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #08090a;
+  --win: #101113;
+  --surface: #16171a;
+  --sunk: #0c0d0f;
+  --ink: #e6e7ea;
+  --mute: #7c7f88;
+  --line: #24262b;
+  --acc: #5b84ff;
+  --face: #141518;
+  --body: #1d1e22;
+  --tick: #e6e7ea;
+  --a1: #5b84ff;
+  --a2: #f2555a;
+  --a3: #3dd68c;
+  --a4: #ffb224;
+  --a5: #ab6ce0;
+  --a6: #24c7b4;
+  --a7: #9a9da6;
+  --a8: #f05ab8;
+}
+
+[data-material='solid'] {
+  --glass-surface: var(--surface);
+  --glass-side: var(--sunk);
+  --glass-line: var(--line);
+  --blur-card: none;
+  --blur-side: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-surface: var(--surface);
+    --glass-side: var(--sunk);
+    --glass-line: var(--line);
+    --blur-card: none;
+    --blur-side: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --line: color-mix(in srgb, var(--ink) 38%, transparent);
+    --glass-line: color-mix(in srgb, var(--ink) 38%, transparent);
+    --mute: color-mix(in srgb, var(--ink) 72%, transparent);
+    --hover-wash: color-mix(in srgb, var(--ink) 12%, transparent);
+  }
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font: 400 13px/1.45 var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color var(--slow) var(--ease-out),
+    color var(--slow) var(--ease-out);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.press {
+  transition:
+    transform var(--slow) var(--spring),
+    background-color var(--base) var(--ease-out),
+    box-shadow var(--base) var(--ease-out),
+    border-color var(--base) var(--ease-out),
+    color var(--base) var(--ease-out),
+    opacity var(--base) var(--ease-out);
+}
+
+.press:active {
+  transform: scale(var(--press-scale));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition:
+      background-color var(--fast) linear,
+      color var(--fast) linear;
+  }
+  .press {
+    transition:
+      opacity var(--fast) linear,
+      background-color var(--fast) linear,
+      border-color var(--fast) linear,
+      color var(--fast) linear;
+  }
+  .press:active {
+    transform: none;
+    opacity: 0.72;
+  }
+}

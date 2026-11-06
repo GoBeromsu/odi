@@ -1,0 +1,329 @@
+.pop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0 0 62px;
+  border-radius: var(--radius-window);
+  border: 1px solid var(--glass-line);
+  background: var(--glass-surface);
+  backdrop-filter: var(--blur-card);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.pop-top {
+  display: flex;
+  align-items: center;
+  gap: var(--step-2);
+  height: 42px;
+  flex: none;
+  padding: 0 var(--step-2) 0 14px;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.pop-spacer {
+  flex: 1;
+}
+
+.pop-dot,
+.pop-health {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: var(--radius-dot);
+  background: var(--a3);
+}
+
+.pop-dot[data-health='paused'],
+.pop-health[data-health='paused'] {
+  background: var(--mute);
+}
+
+.pop-dot[data-health='automation-denied'],
+.pop-health[data-health='automation-denied'] {
+  background: var(--a4);
+}
+
+.pop-dot[data-health='tracker-failed'],
+.pop-health[data-health='tracker-failed'] {
+  background: var(--a5);
+}
+
+.pop-top-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pop-read {
+  text-align: center;
+  margin-top: var(--step-3);
+}
+
+.pop-time {
+  margin: 0;
+  font: 500 22px var(--font);
+}
+
+.pop-status {
+  margin: 2px 0 0;
+  min-height: 16px;
+  font-size: 12px;
+  color: var(--mute);
+  transition: color var(--base) var(--ease-out);
+}
+
+.pop[data-mode='break'] .pop-status {
+  color: var(--a3);
+}
+
+.pop[data-phase='overtime'] .pop-status {
+  color: var(--acc-text);
+}
+
+.pop-health {
+  margin: var(--step-3) auto 0;
+}
+
+.pop-bottom {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  gap: var(--step-2);
+}
+
+.pop-primary {
+  flex: 1;
+}
+
+.pop-stop {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+}
+
+.pop-top,
+.pop-read,
+.pop-bottom,
+.ui-dial-device {
+  transition:
+    opacity 240ms var(--ease-out),
+    transform var(--slow) var(--spring);
+}
+
+.pop[data-running='true'] .pop-top,
+.pop[data-running='true'] .pop-status,
+.pop[data-running='true'] .pop-bottom {
+  opacity: 0;
+}
+
+.pop[data-running='true'] .pop-bottom {
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.pop[data-running='true'] .ui-dial-device {
+  transform: translateY(18px) scale(1.1);
+}
+
+.pop[data-running='true'] .pop-read {
+  transform: translateY(34px) scale(1.14);
+}
+
+.pop[data-running='true']:hover .pop-top,
+.pop[data-running='true']:hover .pop-status,
+.pop[data-running='true']:hover .pop-bottom,
+.pop[data-running='true']:focus-within .pop-top,
+.pop[data-running='true']:focus-within .pop-bottom {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.pop[data-running='true']:hover .ui-dial-device {
+  transform: translateY(4px) scale(1.03);
+}
+
+.pop[data-running='true']:hover .pop-read {
+  transform: translateY(8px);
+}
+
+.pop-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px;
+  background: var(--win);
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-window) var(--radius-window) 0 0;
+  box-shadow: 0 -12px 30px -18px rgb(0 0 0 / 25%);
+  transform: translateY(105%);
+  transition: transform 360ms var(--spring);
+}
+
+.pop[data-choosing='true'] .pop-sheet {
+  transform: none;
+}
+
+.pop-sheet-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+}
+
+.pop-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--step-2);
+}
+
+.pop-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--step-2);
+  padding: var(--step-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.pop-tile:hover {
+  border-color: color-mix(in srgb, var(--ink) 28%, transparent);
+  box-shadow: 0 8px 18px -12px rgb(0 0 0 / 30%);
+}
+
+.pop-tile[data-default='true'] {
+  border-color: var(--ink);
+}
+
+.pop-tile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--step-2);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 14px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pop-tile-head:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 3px;
+}
+
+.pop-tile-head .ui-kbd {
+  margin-left: auto;
+}
+
+.pop-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: var(--step-2);
+}
+
+.pop-tile-icon[data-tone='focus'] {
+  background: color-mix(in srgb, var(--acc) 14%, transparent);
+  color: var(--acc);
+}
+
+.pop-tile-icon[data-tone='break'] {
+  background: color-mix(in srgb, var(--a3) 16%, transparent);
+  color: var(--a3);
+}
+
+@keyframes pop-breathe {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pop[data-phase='overtime'] .ui-dial-pulse {
+  animation: pop-breathe 2.8s ease-in-out infinite;
+}
+
+.mini {
+  display: flex;
+  align-items: center;
+  gap: var(--step-2);
+  width: 100%;
+  height: 100%;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius-chip);
+  background: var(--glass-surface);
+  backdrop-filter: var(--blur-card);
+  color: var(--ink);
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+
+.mini-time {
+  flex: 1;
+  text-align: left;
+}
+
+.mini-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: var(--radius-dot);
+  background: var(--a3);
+}
+
+.mini-dot[data-health='paused'] {
+  background: var(--mute);
+}
+
+.mini-dot[data-health='automation-denied'] {
+  background: var(--a4);
+}
+
+.mini-dot[data-health='tracker-failed'] {
+  background: var(--a5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop-top,
+  .pop-read,
+  .pop-bottom,
+  .ui-dial-device {
+    transition: opacity var(--fast) linear;
+  }
+  .pop[data-running='true'] .ui-dial-device,
+  .pop[data-running='true'] .pop-read,
+  .pop[data-running='true'] .pop-bottom,
+  .pop[data-running='true']:hover .ui-dial-device,
+  .pop[data-running='true']:hover .pop-read {
+    transform: none;
+  }
+  .pop-sheet {
+    transform: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--fast) linear;
+  }
+  .pop[data-choosing='true'] .pop-sheet {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .pop[data-phase='overtime'] .ui-dial-pulse {
+    animation: none;
+    opacity: 0.75;
+  }
+}

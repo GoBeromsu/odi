@@ -1,31 +1,27 @@
 import js from '@eslint/js'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
+import reactHooks from 'eslint-plugin-react-hooks'
+import noComments from './eslint-rules/no-comments.js'
 
-const noComments = {
-  meta: {
-    type: 'suggestion',
-    schema: [],
-    messages: { comment: 'This project has no code comments.' },
-  },
-  create: context => ({
-    Program() {
-      for (const loc of context.sourceCode.getAllComments()) {
-        context.report({ loc: loc.loc, messageId: 'comment' })
-      }
-    },
-  }),
-}
+const SOURCE = ['**/*.{ts,tsx,js,mjs,cjs,cts}']
 
 const layer = (message, ...group) => ({
   'no-restricted-imports': ['error', { patterns: [{ group, message }] }],
 })
 
 export default tseslint.config(
-  { ignores: ['out/', 'node_modules/', '.omc/', '.claude/'] },
+  { ignores: ['out/', 'dist/', 'node_modules/', '.omc/', '.claude/'] },
+  {
+    linterOptions: {
+      noInlineConfig: true,
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
+    files: SOURCE,
     plugins: { local: { rules: { 'no-comments': noComments } } },
     rules: {
       'local/no-comments': 'error',
@@ -44,7 +40,16 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    files: ['eslint-rules/**/*.test.js'],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['.omo/designs/**/*.js'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
     files: ['src/renderer/**'],
+    extends: [reactHooks.configs.flat.recommended],
     languageOptions: { globals: globals.browser },
     rules: layer(
       'The renderer cannot import main, preload, Electron or Node.',
