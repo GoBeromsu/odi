@@ -14,6 +14,10 @@ export interface Health {
   reason?: HealthReason
 }
 
+export interface Appearance {
+  dark: boolean
+}
+
 export interface LanguageView {
   setting: Language
   system: Locale
@@ -83,7 +87,10 @@ export interface OdyApi {
   settings: () => Promise<Settings>
   patchSettings: (changes: Partial<Settings>) => Promise<Settings>
   onSettings: (cb: (s: Settings) => void) => void
+  appearance: () => Promise<Appearance>
+  onAppearance: (cb: (a: Appearance) => void) => void
   requestBrowserAuth: () => Promise<BrowserAuth>
+  openPrivacy: () => Promise<void>
   language: () => Promise<LanguageView>
   setLanguage: (value: Language) => Promise<LanguageView>
   onLanguage: (cb: (view: LanguageView) => void) => void

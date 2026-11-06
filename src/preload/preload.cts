@@ -31,7 +31,12 @@ const api: OdyApi = {
   onSettings: cb => {
     ipcRenderer.on('settings', (_e, s) => cb(s))
   },
+  appearance: () => ipcRenderer.invoke('appearance'),
+  onAppearance: cb => {
+    ipcRenderer.on('appearance', (_e, a) => cb(a))
+  },
   requestBrowserAuth: () => ipcRenderer.invoke('requestBrowserAuth'),
+  openPrivacy: () => ipcRenderer.invoke('openPrivacy'),
   language: () => ipcRenderer.invoke('language'),
   setLanguage: value => ipcRenderer.invoke('setLanguage', value),
   onLanguage: cb => {

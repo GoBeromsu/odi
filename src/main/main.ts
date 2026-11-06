@@ -9,6 +9,7 @@ import {
   Notification,
   powerMonitor,
   session,
+  shell,
   Tray,
 } from 'electron'
 import path from 'node:path'
@@ -61,6 +62,9 @@ const TRAY_BADGE: Record<HealthReason, Rgb> = {
   'automation-denied': { r: 255, g: 179, b: 71 },
   'tracker-failed': { r: 255, g: 99, b: 105 },
 }
+
+const PRIVACY_PANE =
+  'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation'
 
 const GLYPH_SIZE = 18
 const GLYPH_SCALE = 2
@@ -123,6 +127,8 @@ const languageView = (): LanguageView => {
 const say = (key: MessageKey) => t(languageView().locale, key)
 
 const health = (): Health => watcher?.health() ?? { state: 'paused' }
+
+const appearance = () => ({ dark: nativeTheme.shouldUseDarkColors })
 
 const paintTrayGlyph = (view: View) => {
   if (!tray) {
@@ -257,6 +263,7 @@ const applySettings = (changes: Partial<Settings>) => {
   const next = settings().patch(changes)
   if (changes.mode !== undefined) {
     nativeTheme.themeSource = next.mode
+    broadcast('appearance', appearance())
   }
   if (changes.launchAtLogin !== undefined) {
     app.setLoginItemSettings({ openAtLogin: next.launchAtLogin })
@@ -346,6 +353,7 @@ ipcMain.handle('openActivity', (_e, tab?: ActivityTab) => {
   openActivity(tab ?? 'focus')
 })
 ipcMain.handle('showPopover', () => showPopover())
+ipcMain.handle('appearance', appearance)
 ipcMain.handle('settings', () => settings().get())
 ipcMain.handle('patchSettings', (_e, changes: Partial<Settings>) =>
   applySettings(changes ?? {})
@@ -354,6 +362,11 @@ ipcMain.handle('requestBrowserAuth', () =>
   requestBrowserAuth({
     settings: () => settings().get(),
     patch: changes => applySettings(changes),
+  })
+)
+ipcMain.handle('openPrivacy', () =>
+  shell.openExternal(PRIVACY_PANE).catch((e: Error) => {
+    console.error('openPrivacy:', e.message)
   })
 )
 ipcMain.handle('language', languageView)
@@ -455,7 +468,10 @@ app.whenReady().then(() => {
   tray.on('click', () => togglePopover())
   paintTrayState()
   refreshShortcut(current.focusShortcut)
-  nativeTheme.on('updated', () => paintTrayGlyph(timer.view()))
+  nativeTheme.on('updated', () => {
+    paintTrayGlyph(timer.view())
+    broadcast('appearance', appearance())
+  })
   setInterval(() => timer.tick(), 1000)
   startWatching()
   if (showcaseRoute()) {

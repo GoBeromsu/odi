@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
-import { ChartGantt, Timer } from 'lucide-react'
+import {
+  Activity as ActivityIcon,
+  ChartGantt,
+  Palette,
+  Settings as SettingsIcon,
+  Settings2,
+  Timer,
+  type LucideIcon,
+} from 'lucide-react'
 import type { ActivityTab } from '../../shared/api.ts'
 import { useT } from '../i18n.ts'
-import { Sidebar } from '../ui/Sidebar.tsx'
+import { Sidebar, SidebarSpacer } from '../ui/Sidebar.tsx'
 import { SidebarItem } from '../ui/SidebarItem.tsx'
 import { FocusTab } from './FocusTab.tsx'
+import { Settings, SETTINGS_SECTIONS } from './Settings.tsx'
 import { TimeTab } from './TimeTab.tsx'
 import { midnight, type Range } from './range.ts'
 import './activity.css'
@@ -12,6 +21,13 @@ import './activity.css'
 const { ody } = window
 
 const TABS: readonly ActivityTab[] = ['focus', 'time', 'settings']
+
+const SECTION_ICON: Record<string, LucideIcon> = {
+  general: Settings2,
+  focus: Timer,
+  tracking: ActivityIcon,
+  appearance: Palette,
+}
 
 const openingTab = (): ActivityTab => {
   const asked = new URLSearchParams(window.location.search).get('tab')
@@ -24,6 +40,7 @@ export function Activity() {
   const [collapsed, setCollapsed] = useState(false)
   const [date, setDate] = useState(() => midnight(new Date()))
   const [range, setRange] = useState<Range>('day')
+  const [section, setSection] = useState<string>(SETTINGS_SECTIONS[0].id)
   const today = midnight(new Date())
 
   useEffect(() => {
@@ -68,10 +85,41 @@ export function Activity() {
           data-tab-choice="time"
           onClick={() => setTab('time')}
         />
+        <SidebarSpacer />
+        <SidebarItem
+          icon={SettingsIcon}
+          label={t('activity.settings')}
+          selected={tab === 'settings'}
+          data-tab-choice="settings"
+          onClick={() => {
+            setTab('settings')
+            setSection(SETTINGS_SECTIONS[0].id)
+          }}
+        />
+        {tab === 'settings'
+          ? SETTINGS_SECTIONS.map(entry => (
+              <SidebarItem
+                key={entry.id}
+                className="act-subitem"
+                icon={SECTION_ICON[entry.id]}
+                label={t(entry.label)}
+                selected={section === entry.id}
+                data-section-link={entry.id}
+                onClick={() => {
+                  setSection(entry.id)
+                  document
+                    .getElementById(`set-${entry.id}`)
+                    ?.scrollIntoView({ block: 'start' })
+                }}
+              />
+            ))
+          : null}
       </Sidebar>
+      {tab === 'settings' ? <Settings /> : null}
       {tab === 'focus' ? (
         <FocusTab onStarted={() => setCollapsed(true)} />
-      ) : (
+      ) : null}
+      {tab === 'time' ? (
         <TimeTab
           date={date}
           range={range}
@@ -81,7 +129,7 @@ export function Activity() {
           onPick={pick}
           onRange={setRange}
         />
-      )}
+      ) : null}
     </div>
   )
 }
