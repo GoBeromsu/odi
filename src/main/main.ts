@@ -37,7 +37,7 @@ import { openSettings } from './settings.ts'
 import { openStore, type Store } from './store.ts'
 import { createTimer, type PersistedSession } from './timer.ts'
 import { browserFor, readDomain, readFrontApp } from './track.ts'
-import { glyphBitmap, type Rgb } from './trayGlyph.ts'
+import { glyphBitmap, pixelAt, type Rgb } from './trayGlyph.ts'
 import { createWatcher, type Watcher } from './watcher.ts'
 import {
   createActivityWindow,
@@ -72,6 +72,7 @@ const PRIVACY_PANE =
 
 const GLYPH_SIZE = 18
 const GLYPH_SCALE = 2
+const BADGE_PROBE = 30
 const IDLE_DEGREES = 90
 const DARK_INK = 236
 const LIGHT_INK = 22
@@ -96,6 +97,8 @@ let store: Store | undefined
 let settingsStore: ReturnType<typeof openSettings> | undefined
 let watcher: Watcher | undefined
 let lastIdle = true
+let trayTooltip = ''
+let trayGlyph: ReturnType<typeof glyphBitmap> | undefined
 
 const database = () => {
   store ??= openStore(userFile('ody.db'))
@@ -151,6 +154,7 @@ const paintTrayGlyph = (view: View) => {
     ink: { r: shade, g: shade, b: shade },
     badge: reason ? TRAY_BADGE[reason] : null,
   })
+  trayGlyph = glyph
   tray.setImage(
     nativeImage.createFromBitmap(glyph.data, {
       width: glyph.width,
@@ -170,11 +174,33 @@ const paintTrayState = () => {
     : now.state === 'paused'
       ? 'tray.paused'
       : 'tray.recording'
-  tray.setToolTip(say(key))
+  trayTooltip = say(key)
+  tray.setToolTip(trayTooltip)
   tray.setContextMenu(
     Menu.buildFromTemplate([{ label: say('menu.quit'), role: 'quit' }])
   )
   paintTrayGlyph(timer.view())
+}
+
+const trayProbe = () => {
+  if (!tray || !trayGlyph) {
+    return null
+  }
+  const image = nativeImage.createFromBitmap(trayGlyph.data, {
+    width: trayGlyph.width,
+    height: trayGlyph.height,
+    scaleFactor: GLYPH_SCALE,
+  })
+  return {
+    tooltip: trayTooltip,
+    title: tray.getTitle(),
+    badge: pixelAt(trayGlyph, BADGE_PROBE, BADGE_PROBE),
+    png: image.toPNG().toString('base64'),
+  }
+}
+
+if (process.env.ODY_QA_TRAY === '1') {
+  Object.assign(globalThis, { odyTrayProbe: trayProbe })
 }
 
 function popoverWindow() {
