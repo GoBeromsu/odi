@@ -1,4 +1,7 @@
 import { execFile } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 
 export type NotifyStatus =
   | 'authorized'
@@ -29,22 +32,57 @@ export function parseNotifyStatus(output: string): NotifyStatus {
 export const isNotifyGranted = (status: NotifyStatus) =>
   status === 'authorized' || status === 'provisional'
 
-export function runNotifyHelper(binary: string, command: NotifyCommand) {
-  return new Promise<NotifyStatus>(resolve =>
+function runHelper(binary: string, args: string[]) {
+  const bundled = binary.endsWith('.app')
+  const dir = bundled ? mkdtempSync(path.join(tmpdir(), 'ody-notify-')) : ''
+  const out = path.join(dir, 'out.txt')
+  const [cmd, argv] = bundled
+    ? ['open', ['-W', '-g', '-n', '--stdout', out, binary, '--args', ...args]]
+    : [binary, args]
+  return new Promise<string | null>(resolve =>
     execFile(
-      binary,
-      [command],
-      { timeout: 30000, killSignal: 'SIGKILL' },
-      (err, out) => {
+      cmd,
+      argv,
+      { timeout: 70000, killSignal: 'SIGKILL' },
+      (err, stdout) => {
+        let text = String(stdout)
+        if (bundled) {
+          try {
+            text = readFileSync(out, 'utf8')
+          } catch {
+            text = ''
+          }
+          rmSync(dir, { recursive: true, force: true })
+        }
         if (err) {
           console.error('notify helper:', err.message)
-          resolve('unavailable')
+          resolve(null)
           return
         }
-        resolve(parseNotifyStatus(String(out)))
+        resolve(text)
       }
     )
   )
+}
+
+export async function runNotifyHelper(binary: string, command: NotifyCommand) {
+  const text = await runHelper(binary, [command])
+  return text === null ? 'unavailable' : parseNotifyStatus(text)
+}
+
+export async function postNotification(
+  binary: string,
+  title: string,
+  body: string,
+  silent: boolean
+) {
+  const text = await runHelper(binary, [
+    'post',
+    title,
+    body,
+    silent ? 'silent' : 'sound',
+  ])
+  return text?.trim() === 'posted'
 }
 
 export async function askNotifications(
@@ -52,23 +90,11 @@ export async function askNotifications(
   run: (
     binary: string,
     command: NotifyCommand
-  ) => Promise<NotifyStatus> = runNotifyHelper,
-  prompt?: () => void
+  ) => Promise<NotifyStatus> = runNotifyHelper
 ) {
   const current = await run(binary, 'status')
-  if (current !== 'notDetermined') {
-    return current
-  }
-  if (!prompt) {
+  if (current === 'notDetermined') {
     return run(binary, 'request')
   }
-  prompt()
-  for (let i = 0; i < 60; i++) {
-    await new Promise(resolve => setTimeout(resolve, 500))
-    const next = await run(binary, 'status')
-    if (next !== 'notDetermined') {
-      return next
-    }
-  }
-  return 'notDetermined'
+  return current
 }

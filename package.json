@@ -72,8 +72,8 @@
     ],
     "extraFiles": [
       {
-        "from": "build/bin/ody-notify-auth",
-        "to": "MacOS/ody-notify-auth"
+        "from": "build/bin/ody-notifier.app",
+        "to": "Helpers/ody-notifier.app"
       }
     ],
     "mac": {
