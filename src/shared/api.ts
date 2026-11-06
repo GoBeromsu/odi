@@ -28,6 +28,30 @@ export interface View {
   overtime?: number
 }
 
+export type EventKind = 'active' | 'idle' | 'away'
+
+export interface ActivityEvent {
+  id: number
+  start: number
+  end: number
+  kind: EventKind
+  app: string | null
+  bundle_id: string | null
+  domain: string | null
+}
+
+export interface SiteTotal {
+  domain: string
+  seconds: number
+}
+
+export interface AppTotal {
+  app: string | null
+  bundle_id: string | null
+  seconds: number
+  sites: SiteTotal[]
+}
+
 export interface SessionRecord {
   id: string
   started_at: number
@@ -51,6 +75,9 @@ export interface OdyApi {
   resume: () => Promise<void>
   stop: () => Promise<void>
   sessions: (from: number, to: number) => Promise<SessionRecord[]>
+  events: (from: number, to: number) => Promise<ActivityEvent[]>
+  totals: (from: number, to: number) => Promise<AppTotal[]>
+  recordedDays: (from: number, to: number) => Promise<string[]>
   health: () => Promise<Health>
   onHealth: (cb: (h: Health) => void) => void
   settings: () => Promise<Settings>

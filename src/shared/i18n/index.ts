@@ -6,7 +6,13 @@ export type Locale = 'ko' | 'en'
 export type Dict = typeof ko
 export type MessageKey = keyof Dict
 export type Vars = Record<string, string | number>
-export type DateStyle = 'day' | 'weekday' | 'month' | 'time' | 'full'
+export type DateStyle =
+  | 'day'
+  | 'weekday'
+  | 'month'
+  | 'monthShort'
+  | 'time'
+  | 'full'
 
 const DICTS: Record<Locale, Dict> = { ko, en }
 const DAY = 86400000
@@ -60,6 +66,7 @@ const DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   day: { month: 'long', day: 'numeric', weekday: 'short' },
   weekday: { weekday: 'short' },
   month: { year: 'numeric', month: 'long' },
+  monthShort: { month: 'short' },
   time: { hour: '2-digit', minute: '2-digit', hour12: false },
   full: { dateStyle: 'full' },
 }

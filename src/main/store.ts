@@ -170,6 +170,13 @@ export function openStore(file: string) {
      GROUP BY app, bundle_id, domain`
   )
   totals.setReturnArrays(true)
+  const recorded = db.prepare(
+    `SELECT DISTINCT date(start, 'unixepoch', 'localtime')
+     FROM events
+     WHERE kind='active' AND "end">=? AND start<=?
+     ORDER BY 1`
+  )
+  recorded.setReturnArrays(true)
   const putSession = db.prepare(
     `INSERT INTO sessions(id,started_at,ended_at,planned,paused_seconds,overtime_seconds,status,kind)
      VALUES(?,?,?,?,?,?,?,?)
@@ -280,6 +287,11 @@ export function openStore(file: string) {
     return [...apps.values()]
       .map(a2 => ({ ...a2, sites: a2.sites.sort(desc) }))
       .sort(desc)
+  }
+
+  function recordedDays(a: number, b: number): string[] {
+    const rows = recorded.all(a, b) as unknown as [string][]
+    return rows.map(r => r[0])
   }
 
   function upsertSession(s: SessionRow) {
@@ -395,6 +407,7 @@ export function openStore(file: string) {
     boundary,
     eventsBetween,
     totalsBetween,
+    recordedDays,
     upsertSession,
     sessionsBetween,
     importJson,

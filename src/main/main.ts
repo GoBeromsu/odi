@@ -332,6 +332,15 @@ ipcMain.handle('stop', () => timer.stop())
 ipcMain.handle('sessions', (_e, from: number, to: number) =>
   database().sessionsBetween(from, to)
 )
+ipcMain.handle('events', (_e, from: number, to: number) =>
+  database().eventsBetween(from, to)
+)
+ipcMain.handle('totals', (_e, from: number, to: number) =>
+  database().totalsBetween(from, to)
+)
+ipcMain.handle('recordedDays', (_e, from: number, to: number) =>
+  database().recordedDays(from, to)
+)
 ipcMain.handle('health', health)
 ipcMain.handle('openActivity', (_e, tab?: ActivityTab) => {
   openActivity(tab ?? 'focus')

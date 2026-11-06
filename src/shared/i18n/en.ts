@@ -37,6 +37,7 @@ export const en: typeof ko = {
   'kind.idle': 'No input',
   'kind.away': 'Away',
 
+  'activity.title': 'Activity',
   'activity.tabFocus': 'Focus',
   'activity.tabTime': 'Time Activity',
   'activity.settings': 'Settings',
@@ -64,6 +65,9 @@ export const en: typeof ko = {
   'activity.emptyDay': 'Nothing was recorded on this day',
   'activity.emptyFuture': 'This day has not happened yet',
   'activity.goToToday': 'Go to today',
+  'activity.quarterLabel': 'Q{quarter} {year}',
+  'activity.yearLabel': '{year}',
+  'activity.weekLabel': '{from} – {to}',
   'activity.weeklyActivity': 'Weekly activity',
   'activity.dailyActivity': '{year} · daily active time',
   'activity.focusAmount': 'Focus {duration}',

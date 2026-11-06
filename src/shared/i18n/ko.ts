@@ -35,6 +35,7 @@ export const ko = {
   'kind.idle': '입력 없음',
   'kind.away': '자리 비움',
 
+  'activity.title': '활동',
   'activity.tabFocus': 'Focus',
   'activity.tabTime': 'Time Activity',
   'activity.settings': '설정',
@@ -62,6 +63,9 @@ export const ko = {
   'activity.emptyDay': '이 날은 기록이 없어요',
   'activity.emptyFuture': '아직 오지 않은 날이에요',
   'activity.goToToday': '오늘로',
+  'activity.quarterLabel': '{year}년 {quarter}분기',
+  'activity.yearLabel': '{year}년',
+  'activity.weekLabel': '{from} – {to}',
   'activity.weeklyActivity': '주별 활동',
   'activity.dailyActivity': '{year} · 하루 활동 시간',
   'activity.focusAmount': '집중 {duration}',
