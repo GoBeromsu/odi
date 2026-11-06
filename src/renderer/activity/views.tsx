@@ -171,10 +171,25 @@ export function WeekView({ date, today, data, onPick }: ViewProps) {
   )
   const base = first * 3600
   const span = Math.max(3600, (last - first) * 3600)
+  const hours = Array.from(
+    { length: Math.floor(span / 7200) + 1 },
+    (_, i) => first + i * 2
+  )
 
   return (
     <div className="act-canvas" data-view="week">
       <div className="act-week">
+        <div className="act-axis" data-axis="">
+          {hours.map(hour => (
+            <span
+              key={hour}
+              className="tnum"
+              style={{ top: pct((((hour - first) * 3600) / span) * 100) }}
+            >
+              {String(hour).padStart(2, '0')}
+            </span>
+          ))}
+        </div>
         {days.map(day => (
           <button
             type="button"

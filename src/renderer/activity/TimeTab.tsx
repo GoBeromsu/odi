@@ -108,7 +108,9 @@ export function TimeTab({
 
   const label = () => {
     if (range === 'day') {
-      return relativeDay(date, today)
+      const relative = relativeDay(date, today)
+      const day = fmt(date, 'day')
+      return relative === day ? day : `${relative} · ${day}`
     }
     if (range === 'week') {
       return t('activity.weekLabel', {
