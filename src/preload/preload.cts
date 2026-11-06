@@ -6,17 +6,11 @@ const api: OdyApi = {
   onState: cb => {
     ipcRenderer.on('state', (_e, v) => cb(v))
   },
-  start: () => ipcRenderer.invoke('start'),
+  start: (mode, planned) => ipcRenderer.invoke('start', mode, planned),
   pause: () => ipcRenderer.invoke('pause'),
   resume: () => ipcRenderer.invoke('resume'),
   stop: () => ipcRenderer.invoke('stop'),
-  sessions: () => ipcRenderer.invoke('sessions'),
-  session: id => ipcRenderer.invoke('session', id),
-  onEnded: cb => {
-    ipcRenderer.on('ended', (_e, id) => cb(id))
-  },
-  theme: () => ipcRenderer.invoke('theme'),
-  setTheme: v => ipcRenderer.invoke('setTheme', v),
+  sessions: (from, to) => ipcRenderer.invoke('sessions', from, to),
 }
 
 contextBridge.exposeInMainWorld('ody', api)

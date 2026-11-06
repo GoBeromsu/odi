@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { Phase, View } from '../../shared/api.ts'
-import { mmss } from '../../shared/time.ts'
+import { clock } from '../../shared/time.ts'
 
 const { ody } = window
 
 const ACTION: Record<Phase, { label: string; run: () => Promise<void> }> = {
-  idle: { label: 'Focus', run: () => ody.start() },
+  idle: { label: 'Focus', run: () => ody.start('focus') },
   running: { label: 'Pause', run: () => ody.pause() },
   paused: { label: 'Resume', run: () => ody.resume() },
+  overtime: { label: 'Pause', run: () => ody.pause() },
 }
 
 export function Focus() {
@@ -23,9 +24,8 @@ export function Focus() {
   }
   const action = ACTION[state.phase]
   return (
-    <main data-phase={state.phase}>
-      <h1>ody</h1>
-      <p data-time="">{mmss(state.remaining ?? state.planned)}</p>
+    <main data-phase={state.phase} data-mode={state.mode}>
+      <p data-time="">{clock(state.remaining)}</p>
       <button
         type="button"
         data-primary=""
@@ -35,16 +35,17 @@ export function Focus() {
       >
         {action.label}
       </button>
-      {state.phase === 'paused' ? (
+      {state.phase === 'idle' ? null : (
         <button
           type="button"
+          data-stop=""
           aria-label="Stop"
           title="Stop"
           onClick={() => ody.stop()}
         >
           Stop
         </button>
-      ) : null}
+      )}
     </main>
   )
 }

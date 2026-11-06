@@ -1,44 +1,32 @@
-import type { Segment, Totals } from './session.ts'
+import type { Mode, Phase } from './session.ts'
 
-export type Theme = 'system' | 'light' | 'dark'
-export type Phase = 'idle' | 'running' | 'paused'
+export type { Mode, Phase }
 
 export interface View {
   phase: Phase
+  mode: Mode
   planned: number
-  remaining?: number
+  remaining: number
+  overtime?: number
 }
 
-export interface SessionSummary {
+export interface SessionRecord {
   id: string
   started_at: number
-  ended_at: number
-  recorded_seconds: number
-  paused_seconds: number
-  status: string
-}
-
-export interface SessionDetail {
-  id: string
+  ended_at: number | null
   planned: number
   paused_seconds: number
-  started_at: number
-  ended_at: number
-  segments: Segment[]
-  totals: Totals
+  overtime_seconds: number
   status: string
+  kind: string
 }
 
 export interface OdyApi {
   state: () => Promise<View>
   onState: (cb: (v: View) => void) => void
-  start: () => Promise<void>
+  start: (mode: Mode, planned?: number) => Promise<void>
   pause: () => Promise<void>
   resume: () => Promise<void>
   stop: () => Promise<void>
-  sessions: () => Promise<SessionSummary[]>
-  session: (id: string) => Promise<SessionDetail | null>
-  onEnded: (cb: (id: string) => void) => void
-  theme: () => Promise<Theme>
-  setTheme: (v: Theme) => Promise<void>
+  sessions: (from: number, to: number) => Promise<SessionRecord[]>
 }
