@@ -20,14 +20,15 @@
       .filter(Boolean)
       .join(' · ') || KIND_NAME[g.kind]
 
+  const stoppedMark = s => (s.status === 'ended' ? '' : ' · 중단됨')
+
   const row = (s, onSelect) => {
-    const stopped = s.status === 'ended' ? '' : ' · 중단됨'
     const button = el(
       'button',
       'rec-row',
       null,
       clipped('span', 'rec-row-start', dateTime(s.started_at)),
-      el('span', 'rec-row-meta', mmss(s.recorded_seconds) + stopped)
+      el('span', 'rec-row-meta', mmss(s.recorded_seconds) + stoppedMark(s))
     )
     button.type = 'button'
     button.dataset.id = s.id
@@ -138,7 +139,11 @@
         'rec-head',
         null,
         el('h2', 'rec-title', dateTime(d.started_at)),
-        el('p', 'rec-plan', `계획 ${mmss(d.planned)} / 기록 ${mmss(recorded)}`)
+        el(
+          'p',
+          'rec-plan',
+          `계획 ${mmss(d.planned)} / 기록 ${mmss(recorded)}${stoppedMark(d)}`
+        )
       ),
       el(
         'dl',
