@@ -1,0 +1,11 @@
+node_modules/
+out/
+dist/
+*.log
+.eslintcache
+.DS_Store
+.omc/
+
+!.claude/
+.claude/*
+!.claude/settings.json

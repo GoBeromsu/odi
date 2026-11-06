@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "craft-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Xia-Ataraxia/craft-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "craft-skills@craft-skills": true
+  }
+}
