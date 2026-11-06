@@ -4,6 +4,8 @@ import type { BrowserAuth, Language, Settings } from './settings.ts'
 
 export type { Mode, Phase }
 
+export type ActivityTab = 'focus' | 'time' | 'settings'
+
 export type HealthState = 'recording' | 'paused' | 'error'
 export type HealthReason = 'automation-denied' | 'tracker-failed'
 
@@ -40,6 +42,10 @@ export interface SessionRecord {
 export interface OdyApi {
   state: () => Promise<View>
   onState: (cb: (v: View) => void) => void
+  openActivity: (tab?: ActivityTab) => Promise<void>
+  showPopover: () => Promise<void>
+  onSheet: (cb: () => void) => void
+  onActivityTab: (cb: (tab: ActivityTab) => void) => void
   start: (mode: Mode, planned?: number) => Promise<void>
   pause: () => Promise<void>
   resume: () => Promise<void>

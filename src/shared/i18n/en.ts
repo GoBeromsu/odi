@@ -19,6 +19,10 @@ export const en: typeof ko = {
   'focus.modeBreak': 'Break',
   'focus.openActivity': 'Open Activity',
   'focus.more': 'More',
+  'focus.openPopover': 'Open the ody popover',
+  'focus.healthDot': 'Tracking status',
+  'focus.dialLabel': 'Remaining time dial',
+  'focus.dialScrubHint': 'Drag to set the minutes',
 
   'notify.focusEnded': 'Your focus time is over',
   'notify.breakEnded': 'Your break is over',
@@ -159,6 +163,7 @@ export const en: typeof ko = {
   'onboarding.note': 'You can turn anything back on in Settings › Tracking',
 
   'unit.minutes': '{minutes} minutes',
+  'unit.minutesPicker': '{minutes} min',
   'unit.hoursMinutes': '{hours}h {minutes}m',
   'unit.minutesShort': '{minutes}m',
   'unit.secondsShort': '{seconds}s',

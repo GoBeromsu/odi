@@ -17,6 +17,10 @@ export const ko = {
   'focus.modeBreak': '휴식',
   'focus.openActivity': 'Activity 열기',
   'focus.more': '더 보기',
+  'focus.openPopover': 'ody 팝오버 열기',
+  'focus.healthDot': '기록 상태',
+  'focus.dialLabel': '남은 시간 다이얼',
+  'focus.dialScrubHint': '드래그해서 분을 정해요',
 
   'notify.focusEnded': '집중 시간이 끝났어요',
   'notify.breakEnded': '휴식이 끝났어요',
@@ -153,6 +157,7 @@ export const ko = {
   'onboarding.note': '거부한 항목은 설정 › 추적에서 언제든 다시 켤 수 있어요',
 
   'unit.minutes': '{minutes}분',
+  'unit.minutesPicker': '{minutes}분',
   'unit.hoursMinutes': '{hours}시간 {minutes}분',
   'unit.minutesShort': '{minutes}분',
   'unit.secondsShort': '{seconds}초',

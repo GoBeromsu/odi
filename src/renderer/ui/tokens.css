@@ -72,6 +72,11 @@
     0 1px 0 rgb(255 255 255 / 25%) inset, 0 30px 60px -24px rgb(0 0 0 / 40%),
     0 2px 8px rgb(0 0 0 / 8%);
 
+  --led-face: #0d0d0e;
+  --led-off: #2a1f1d;
+  --led-ink: #9cc8ff;
+  --led-mark: #7fb6ff;
+
   --glass-surface: color-mix(in srgb, var(--surface) 72%, transparent);
   --glass-side: linear-gradient(
     180deg,

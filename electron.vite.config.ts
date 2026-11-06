@@ -29,6 +29,7 @@ export default defineConfig({
       rollupOptions: {
         input: {
           focus: at('src/renderer/focus.html'),
+          mini: at('src/renderer/mini.html'),
           activity: at('src/renderer/activity.html'),
           showcase: at('src/renderer/showcase.html'),
         },

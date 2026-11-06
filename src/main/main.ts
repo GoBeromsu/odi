@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  globalShortcut,
   ipcMain,
   Menu,
   nativeImage,
@@ -11,7 +12,13 @@ import {
   Tray,
 } from 'electron'
 import path from 'node:path'
-import type { Health, LanguageView, View } from '../shared/api.ts'
+import type {
+  ActivityTab,
+  Health,
+  HealthReason,
+  LanguageView,
+  View,
+} from '../shared/api.ts'
 import {
   resolveLanguage,
   systemLocale,
@@ -26,11 +33,14 @@ import { openSettings } from './settings.ts'
 import { openStore, type Store } from './store.ts'
 import { createTimer, type PersistedSession } from './timer.ts'
 import { browserFor, readDomain, readFrontApp } from './track.ts'
+import { glyphBitmap, type Rgb } from './trayGlyph.ts'
 import { createWatcher, type Watcher } from './watcher.ts'
 import {
   createActivityWindow,
+  createMiniWindow,
   createPopoverWindow,
   loadPage,
+  placeUnder,
 } from './windows.ts'
 
 if (process.env.ODY_USER_DATA) {
@@ -47,6 +57,17 @@ const TRAY_FAULT: Record<string, MessageKey> = {
   'tracker-failed': 'tray.trackerFailed',
 }
 
+const TRAY_BADGE: Record<HealthReason, Rgb> = {
+  'automation-denied': { r: 255, g: 179, b: 71 },
+  'tracker-failed': { r: 255, g: 99, b: 105 },
+}
+
+const GLYPH_SIZE = 18
+const GLYPH_SCALE = 2
+const IDLE_DEGREES = 90
+const DARK_INK = 236
+const LIGHT_INK = 22
+
 const seconds = (value: string | undefined) => {
   const n = Math.floor(Number(value))
   return Number.isFinite(n) && n > 0 ? n : null
@@ -59,10 +80,13 @@ const now = () => Date.now() / 1000
 const userFile = (name: string) => path.join(app.getPath('userData'), name)
 
 let tray: Tray | undefined
-let win: BrowserWindow | undefined
+let popover: BrowserWindow | undefined
+let mini: BrowserWindow | undefined
+let activity: BrowserWindow | undefined
 let store: Store | undefined
 let settingsStore: ReturnType<typeof openSettings> | undefined
 let watcher: Watcher | undefined
+let lastIdle = true
 
 const database = () => {
   store ??= openStore(userFile('ody.db'))
@@ -100,6 +124,31 @@ const say = (key: MessageKey) => t(languageView().locale, key)
 
 const health = (): Health => watcher?.health() ?? { state: 'paused' }
 
+const paintTrayGlyph = (view: View) => {
+  if (!tray) {
+    return
+  }
+  const reason = health().reason
+  const shade = nativeTheme.shouldUseDarkColors ? DARK_INK : LIGHT_INK
+  const glyph = glyphBitmap({
+    size: GLYPH_SIZE,
+    scale: GLYPH_SCALE,
+    degrees:
+      view.phase === 'idle'
+        ? IDLE_DEGREES
+        : (Math.max(0, view.remaining) / 3600) * 360,
+    ink: { r: shade, g: shade, b: shade },
+    badge: reason ? TRAY_BADGE[reason] : null,
+  })
+  tray.setImage(
+    nativeImage.createFromBitmap(glyph.data, {
+      width: glyph.width,
+      height: glyph.height,
+      scaleFactor: GLYPH_SCALE,
+    })
+  )
+}
+
 const paintTrayState = () => {
   if (!tray) {
     return
@@ -114,6 +163,94 @@ const paintTrayState = () => {
   tray.setContextMenu(
     Menu.buildFromTemplate([{ label: say('menu.quit'), role: 'quit' }])
   )
+  paintTrayGlyph(timer.view())
+}
+
+function popoverWindow() {
+  if (!popover || popover.isDestroyed()) {
+    const w = createPopoverWindow()
+    popover = w
+    void loadPage(w, 'focus.html')
+    w.on('blur', () => {
+      w.hide()
+      refreshMini()
+    })
+    w.on('show', () => mini?.hide())
+    w.on('closed', () => {
+      popover = undefined
+    })
+  }
+  return popover
+}
+
+function miniWindow() {
+  if (!mini || mini.isDestroyed()) {
+    const w = createMiniWindow()
+    mini = w
+    void loadPage(w, 'mini.html')
+    w.on('closed', () => {
+      mini = undefined
+    })
+  }
+  return mini
+}
+
+function refreshMini() {
+  const open = popover !== undefined && !popover.isDestroyed() && popover.isVisible()
+  if (timer.idle() || open) {
+    mini?.hide()
+    return
+  }
+  const pill = miniWindow()
+  placeUnder(pill, tray?.getBounds())
+  pill.showInactive()
+}
+
+function showPopover() {
+  const w = popoverWindow()
+  placeUnder(w, tray?.getBounds())
+  w.show()
+  w.focus()
+}
+
+function togglePopover() {
+  const w = popoverWindow()
+  if (w.isVisible()) {
+    w.hide()
+    refreshMini()
+    return
+  }
+  showPopover()
+}
+
+function openActivity(tab: ActivityTab) {
+  if (!activity || activity.isDestroyed()) {
+    const w = createActivityWindow()
+    activity = w
+    void loadPage(w, 'activity.html', { tab })
+    w.on('closed', () => {
+      activity = undefined
+    })
+    return
+  }
+  activity.show()
+  activity.focus()
+  activity.webContents.send('activity-tab', tab)
+}
+
+function refreshShortcut(accelerator: string) {
+  globalShortcut.unregisterAll()
+  try {
+    const taken = globalShortcut.register(accelerator, () => {
+      showPopover()
+      popover?.webContents.send('open-sheet')
+    })
+    if (!taken) {
+      console.error('globalShortcut: already taken', accelerator)
+    }
+  } catch (e) {
+    console.error('globalShortcut:', (e as Error).message)
+  }
 }
 
 const applySettings = (changes: Partial<Settings>) => {
@@ -126,6 +263,9 @@ const applySettings = (changes: Partial<Settings>) => {
   }
   if (changes.language !== undefined) {
     broadcast('language-changed', languageView())
+  }
+  if (changes.focusShortcut !== undefined && app.isReady()) {
+    refreshShortcut(next.focusShortcut)
   }
   paintTrayState()
   broadcast('settings', next)
@@ -170,13 +310,21 @@ const timer = createTimer({
   notify: announce,
   publish: view => {
     paintTray(view)
+    paintTrayGlyph(view)
     broadcast('state', view)
+    const idle = view.phase === 'idle'
+    if (idle !== lastIdle) {
+      lastIdle = idle
+      refreshMini()
+    }
   },
 })
 
 ipcMain.handle('state', () => timer.view())
 ipcMain.handle('start', (_e, mode: Mode, planned?: number) => {
-  timer.start(mode === 'break' ? 'break' : 'focus', planned)
+  const wanted = mode === 'break' ? 'break' : 'focus'
+  const seam = wanted === 'break' ? envBreak : envFocus
+  timer.start(wanted, seam ?? planned)
 })
 ipcMain.handle('pause', () => timer.pause())
 ipcMain.handle('resume', () => timer.resume())
@@ -185,6 +333,10 @@ ipcMain.handle('sessions', (_e, from: number, to: number) =>
   database().sessionsBetween(from, to)
 )
 ipcMain.handle('health', health)
+ipcMain.handle('openActivity', (_e, tab?: ActivityTab) => {
+  openActivity(tab ?? 'focus')
+})
+ipcMain.handle('showPopover', () => showPopover())
 ipcMain.handle('settings', () => settings().get())
 ipcMain.handle('patchSettings', (_e, changes: Partial<Settings>) =>
   applySettings(changes ?? {})
@@ -234,18 +386,12 @@ function guardContent() {
 
 const showcaseRoute = () => !app.isPackaged && process.env.ODY_SHOWCASE === '1'
 
-function createWindow() {
-  const showcase = showcaseRoute()
-  const w = showcase ? createActivityWindow() : createPopoverWindow()
-  win = w
-  loadPage(w, showcase ? 'showcase.html' : 'focus.html')
-}
-
 app.on('before-quit', () => {
   if (!timer.idle()) {
     timer.stop()
   }
   watcher?.stop()
+  globalShortcut.unregisterAll()
 })
 
 function startWatching() {
@@ -274,8 +420,8 @@ function startWatching() {
 }
 
 app.on('activate', () => {
-  if (win && !win.isDestroyed()) {
-    win.show()
+  if (!showcaseRoute()) {
+    showPopover()
   }
 })
 
@@ -297,8 +443,16 @@ app.whenReady().then(() => {
   app.setLoginItemSettings({ openAtLogin: current.launchAtLogin })
   app.dock?.hide()
   tray = new Tray(nativeImage.createEmpty())
+  tray.on('click', () => togglePopover())
   paintTrayState()
+  refreshShortcut(current.focusShortcut)
+  nativeTheme.on('updated', () => paintTrayGlyph(timer.view()))
   setInterval(() => timer.tick(), 1000)
   startWatching()
-  createWindow()
+  if (showcaseRoute()) {
+    const w = createActivityWindow()
+    void loadPage(w, 'showcase.html')
+    return
+  }
+  showPopover()
 })

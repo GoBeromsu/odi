@@ -6,6 +6,14 @@ const api: OdyApi = {
   onState: cb => {
     ipcRenderer.on('state', (_e, v) => cb(v))
   },
+  openActivity: tab => ipcRenderer.invoke('openActivity', tab),
+  showPopover: () => ipcRenderer.invoke('showPopover'),
+  onSheet: cb => {
+    ipcRenderer.on('open-sheet', () => cb())
+  },
+  onActivityTab: cb => {
+    ipcRenderer.on('activity-tab', (_e, tab) => cb(tab))
+  },
   start: (mode, planned) => ipcRenderer.invoke('start', mode, planned),
   pause: () => ipcRenderer.invoke('pause'),
   resume: () => ipcRenderer.invoke('resume'),
