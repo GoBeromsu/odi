@@ -113,6 +113,7 @@ export interface OdyApi {
   openPrivacy: () => Promise<void>
   notifyStatus: () => Promise<NotifyStatus>
   grantAll: () => Promise<Record<OnboardingStep, StepState>>
+  grantStep: (step: OnboardingStep) => Promise<StepState>
   finishOnboarding: (skipped: boolean) => Promise<void>
   onOnboardingStep: (cb: (progress: StepProgress) => void) => void
   language: () => Promise<LanguageView>

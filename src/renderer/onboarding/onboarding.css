@@ -44,10 +44,26 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  width: 100%;
   padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
 }
 
-.onb-item + .onb-item {
+.onb-item:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.onb-item:disabled {
+  cursor: default;
+}
+
+.onb-list li + li {
   border-top: 1px solid var(--line);
 }
 

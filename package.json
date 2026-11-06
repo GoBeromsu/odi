@@ -91,7 +91,7 @@
       ],
       "extendInfo": {
         "NSAppleEventsUsageDescription": "ody reads the URL of the frontmost browser tab to record which site you work on.",
-        "LSUIElement": true
+        "LSUIElement": false
       }
     }
   }

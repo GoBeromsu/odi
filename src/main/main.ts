@@ -233,7 +233,8 @@ function miniWindow() {
 }
 
 function refreshMini() {
-  const open = popover !== undefined && !popover.isDestroyed() && popover.isVisible()
+  const open =
+    popover !== undefined && !popover.isDestroyed() && popover.isVisible()
   if (timer.idle() || open) {
     mini?.hide()
     return
@@ -311,7 +312,10 @@ const applySettings = (changes: Partial<Settings>) => {
     broadcast('appearance', appearance())
   }
   if (changes.launchAtLogin !== undefined) {
-    app.setLoginItemSettings({ openAtLogin: next.launchAtLogin })
+    app.setLoginItemSettings({
+      openAtLogin: next.launchAtLogin,
+      type: 'mainAppService',
+    })
   }
   if (changes.language !== undefined) {
     broadcast('language-changed', languageView())
@@ -419,6 +423,44 @@ const stepUpdate = (step: OnboardingStep, state: StepState) => {
   }
 }
 
+const STEP_ORDER: readonly OnboardingStep[] = [
+  'frontApp',
+  'browsers',
+  'notifications',
+  'loginItem',
+]
+
+const grants: Record<OnboardingStep, () => Promise<boolean>> = {
+  frontApp: async () => (await readFrontApp()) !== null,
+  browsers: async () =>
+    (await requestBrowserAuth({
+      settings: () => settings().get(),
+      patch: changes => applySettings(changes),
+    })) === 'granted',
+  notifications: async () =>
+    isNotifyGranted(
+      await askNotifications(notifyBinary(), undefined, () => {
+        new Notification({
+          title: say('app.name'),
+          body: say('onboarding.notificationsHint'),
+          silent: true,
+        }).show()
+      })
+    ),
+  loginItem: async () => {
+    applySettings({ launchAtLogin: true })
+    const login = app.getLoginItemSettings({ type: 'mainAppService' })
+    return login.status === 'enabled' || login.openAtLogin
+  },
+}
+
+async function grantStep(step: OnboardingStep): Promise<StepState> {
+  stepUpdate(step, 'waiting')
+  const state: StepState = (await grants[step]()) ? 'granted' : 'denied'
+  stepUpdate(step, state)
+  return state
+}
+
 async function grantAll() {
   const results: Record<OnboardingStep, StepState> = {
     frontApp: 'idle',
@@ -426,38 +468,22 @@ async function grantAll() {
     notifications: 'idle',
     loginItem: 'idle',
   }
-  const settle = (step: OnboardingStep, granted: boolean) => {
-    results[step] = granted ? 'granted' : 'denied'
-    stepUpdate(step, results[step])
+  for (const step of STEP_ORDER) {
+    results[step] = await grantStep(step)
   }
-
-  stepUpdate('frontApp', 'waiting')
-  settle('frontApp', (await readFrontApp()) !== null)
-
-  stepUpdate('browsers', 'waiting')
-  const auth = await requestBrowserAuth({
-    settings: () => settings().get(),
-    patch: changes => applySettings(changes),
-  })
-  settle('browsers', auth === 'granted')
-
-  stepUpdate('notifications', 'waiting')
-  settle('notifications', isNotifyGranted(await askNotifications(notifyBinary())))
-
-  stepUpdate('loginItem', 'waiting')
-  applySettings({ launchAtLogin: true })
-  settle('loginItem', app.getLoginItemSettings().openAtLogin)
-
   return results
 }
 
 ipcMain.handle('notifyStatus', () => askNotifications(notifyBinary()))
 ipcMain.handle('grantAll', grantAll)
+ipcMain.handle('grantStep', (_e, step: OnboardingStep) =>
+  STEP_ORDER.includes(step) ? grantStep(step) : 'idle'
+)
 ipcMain.handle('finishOnboarding', (_e, skipped: boolean) => {
   applySettings({ onboarded: true })
   console.log('onboarding finished, skipped:', skipped === true)
   onboarding?.close()
-  showPopover()
+  openActivity('focus')
 })
 ipcMain.handle('openPrivacy', () =>
   shell.openExternal(PRIVACY_PANE).catch((e: Error) => {
@@ -536,12 +562,6 @@ function startWatching() {
   w.start()
 }
 
-app.on('activate', () => {
-  if (!showcaseRoute()) {
-    showPopover()
-  }
-})
-
 app.whenReady().then(() => {
   const imported = database().importJson(sessionsDir())
   if (!imported.already) {
@@ -557,8 +577,10 @@ app.whenReady().then(() => {
   guardContent()
   const current = settings().get()
   nativeTheme.themeSource = current.mode
-  app.setLoginItemSettings({ openAtLogin: current.launchAtLogin })
-  app.dock?.hide()
+  app.setLoginItemSettings({
+    openAtLogin: current.launchAtLogin,
+    type: 'mainAppService',
+  })
   tray = new Tray(nativeImage.createEmpty())
   tray.on('click', () => togglePopover())
   paintTrayState()
@@ -574,10 +596,16 @@ app.whenReady().then(() => {
     void loadPage(w, 'showcase.html')
     return
   }
+  popoverWindow()
   if (!current.onboarded) {
-    popoverWindow()
     openOnboarding()
     return
   }
-  showPopover()
+  openActivity('focus')
+})
+
+app.on('activate', () => {
+  if (!showcaseRoute() && (!onboarding || onboarding.isDestroyed())) {
+    openActivity('focus')
+  }
 })
