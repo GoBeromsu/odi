@@ -9,6 +9,7 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "test": "vitest run",
+    "bench:store": "node scripts/bench-store.ts",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
