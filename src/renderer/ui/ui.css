@@ -274,7 +274,7 @@ body[data-window='mini'] {
 }
 
 .ui-stat[data-tone='accent'] .ui-stat-value {
-  color: var(--acc);
+  color: var(--acc-text);
 }
 
 .ui-empty {
