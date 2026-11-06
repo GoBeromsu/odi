@@ -31,7 +31,11 @@ import {
 import type { Mode } from '../shared/session.ts'
 import type { Language, Settings } from '../shared/settings.ts'
 import { clock } from '../shared/time.ts'
-import { askNotifications, isNotifyGranted } from './notify.ts'
+import {
+  askNotifications,
+  isNotifyGranted,
+  postNotification,
+} from './notify.ts'
 import { requestBrowserAuth } from './permissions.ts'
 import { openSettings } from './settings.ts'
 import { openStore, type Store } from './store.ts'
@@ -345,13 +349,13 @@ const paintTray = (view: View) => {
 }
 
 const announce = (mode: Mode) => {
-  if (!Notification.isSupported()) {
-    return
-  }
-  new Notification({
-    title: say(BOUNDARY_TITLE[mode]),
-    silent: settings().get().sound === 'none',
-  }).show()
+  const title = say(BOUNDARY_TITLE[mode])
+  const silent = settings().get().sound === 'none'
+  void postNotification(notifyBinary(), title, '', silent).then(posted => {
+    if (!posted && Notification.isSupported()) {
+      new Notification({ title, silent }).show()
+    }
+  })
 }
 
 const keep = (row: PersistedSession) => {
@@ -415,7 +419,10 @@ ipcMain.handle('requestBrowserAuth', () =>
 )
 const notifyBinary = () =>
   process.env.ODY_NOTIFY_HELPER ??
-  path.join(path.dirname(app.getPath('exe')), 'ody-notify-auth')
+  path.join(
+    path.dirname(app.getPath('exe')),
+    '../Helpers/ody-notifier.app'
+  )
 
 const stepUpdate = (step: OnboardingStep, state: StepState) => {
   if (onboarding && !onboarding.isDestroyed()) {
@@ -438,15 +445,7 @@ const grants: Record<OnboardingStep, () => Promise<boolean>> = {
       patch: changes => applySettings(changes),
     })) === 'granted',
   notifications: async () =>
-    isNotifyGranted(
-      await askNotifications(notifyBinary(), undefined, () => {
-        new Notification({
-          title: say('app.name'),
-          body: say('onboarding.notificationsHint'),
-          silent: true,
-        }).show()
-      })
-    ),
+    isNotifyGranted(await askNotifications(notifyBinary())),
   loginItem: async () => {
     applySettings({ launchAtLogin: true })
     const login = app.getLoginItemSettings({ type: 'mainAppService' })

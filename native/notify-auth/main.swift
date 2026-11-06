@@ -13,7 +13,8 @@ func describe(_ status: UNAuthorizationStatus) -> String {
 }
 
 let center = UNUserNotificationCenter.current()
-let command = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "status"
+let arguments = CommandLine.arguments
+let command = arguments.count > 1 ? arguments[1] : "status"
 let finished = DispatchSemaphore(value: 0)
 var answer = "notDetermined"
 
@@ -24,14 +25,35 @@ func report() {
     }
 }
 
-if command == "request" {
+func post() {
+    let content = UNMutableNotificationContent()
+    content.title = arguments.count > 2 ? arguments[2] : ""
+    content.body = arguments.count > 3 ? arguments[3] : ""
+    if !(arguments.count > 4 && arguments[4] == "silent") {
+        content.sound = .default
+    }
+    let request = UNNotificationRequest(
+        identifier: UUID().uuidString,
+        content: content,
+        trigger: nil
+    )
+    center.add(request) { error in
+        answer = error == nil ? "posted" : "failed"
+        finished.signal()
+    }
+}
+
+switch command {
+case "request":
     center.requestAuthorization(options: [.alert, .sound]) { _, _ in
         report()
     }
-} else {
+case "post":
+    post()
+default:
     report()
 }
 
-_ = finished.wait(timeout: .now() + 20)
+_ = finished.wait(timeout: .now() + 60)
 print(answer)
 exit(0)
