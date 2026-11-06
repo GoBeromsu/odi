@@ -38,11 +38,12 @@ const drive = (
   return trace
 }
 
-const start = (
-  now: number,
-  planned: number,
-  mode: Mode = 'focus'
-): Action => ({ type: 'start', mode, planned, now })
+const start = (now: number, planned: number, mode: Mode = 'focus'): Action => ({
+  type: 'start',
+  mode,
+  planned,
+  now,
+})
 
 test('start enters running with whole-second anchors', () => {
   const { timer } = drive([start(1000.9, 100)])
@@ -128,7 +129,10 @@ test('pause freezes remaining and resume shifts the boundary', () => {
   expect(paused.notes).toEqual([])
 
   const resumed = drive(
-    [{ type: 'resume', now: 40 }, { type: 'tick', now: 45 }],
+    [
+      { type: 'resume', now: 40 },
+      { type: 'tick', now: 45 },
+    ],
     'overtime',
     paused.timer
   )
@@ -142,7 +146,10 @@ test('pause during overtime holds the overtime and resume returns to overtime', 
   expect(over.timer.phase).toBe('overtime')
 
   const held = drive(
-    [{ type: 'pause', now: 12 }, { type: 'tick', now: 30 }],
+    [
+      { type: 'pause', now: 12 },
+      { type: 'tick', now: 30 },
+    ],
     'overtime',
     over.timer
   )

@@ -11,6 +11,16 @@ const api: OdyApi = {
   resume: () => ipcRenderer.invoke('resume'),
   stop: () => ipcRenderer.invoke('stop'),
   sessions: (from, to) => ipcRenderer.invoke('sessions', from, to),
+  health: () => ipcRenderer.invoke('health'),
+  onHealth: cb => {
+    ipcRenderer.on('health', (_e, h) => cb(h))
+  },
+  settings: () => ipcRenderer.invoke('settings'),
+  patchSettings: changes => ipcRenderer.invoke('patchSettings', changes),
+  onSettings: cb => {
+    ipcRenderer.on('settings', (_e, s) => cb(s))
+  },
+  requestBrowserAuth: () => ipcRenderer.invoke('requestBrowserAuth'),
 }
 
 contextBridge.exposeInMainWorld('ody', api)

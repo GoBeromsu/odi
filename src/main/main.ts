@@ -5,17 +5,22 @@ import {
   nativeImage,
   nativeTheme,
   Notification,
+  powerMonitor,
   screen,
   session,
   Tray,
 } from 'electron'
 import path from 'node:path'
-import type { View } from '../shared/api.ts'
+import type { Health, View } from '../shared/api.ts'
 import type { Mode } from '../shared/session.ts'
+import type { Settings } from '../shared/settings.ts'
 import { clock } from '../shared/time.ts'
+import { requestBrowserAuth } from './permissions.ts'
 import { openSettings } from './settings.ts'
 import { openStore, type Store } from './store.ts'
 import { createTimer, type PersistedSession } from './timer.ts'
+import { browserFor, readDomain, readFrontApp } from './track.ts'
+import { createWatcher, type Watcher } from './watcher.ts'
 
 if (process.env.ODY_USER_DATA) {
   app.setPath('userData', process.env.ODY_USER_DATA)
@@ -41,6 +46,7 @@ let tray: Tray | undefined
 let win: BrowserWindow | undefined
 let store: Store | undefined
 let settingsStore: ReturnType<typeof openSettings> | undefined
+let watcher: Watcher | undefined
 
 const database = () => {
   store ??= openStore(userFile('ody.db'))
@@ -60,6 +66,20 @@ const broadcast = (channel: string, payload: unknown) => {
     }
   }
 }
+
+const applySettings = (changes: Partial<Settings>) => {
+  const next = settings().patch(changes)
+  if (changes.mode !== undefined) {
+    nativeTheme.themeSource = next.mode
+  }
+  if (changes.launchAtLogin !== undefined) {
+    app.setLoginItemSettings({ openAtLogin: next.launchAtLogin })
+  }
+  broadcast('settings', next)
+  return next
+}
+
+const health = (): Health => watcher?.health() ?? { state: 'paused' }
 
 const plannedFor = (mode: Mode) => {
   const s = settings().get()
@@ -112,6 +132,17 @@ ipcMain.handle('resume', () => timer.resume())
 ipcMain.handle('stop', () => timer.stop())
 ipcMain.handle('sessions', (_e, from: number, to: number) =>
   database().sessionsBetween(from, to)
+)
+ipcMain.handle('health', health)
+ipcMain.handle('settings', () => settings().get())
+ipcMain.handle('patchSettings', (_e, changes: Partial<Settings>) =>
+  applySettings(changes ?? {})
+)
+ipcMain.handle('requestBrowserAuth', () =>
+  requestBrowserAuth({
+    settings: () => settings().get(),
+    patch: changes => applySettings(changes),
+  })
 )
 
 const devRendererUrl = () =>
@@ -192,7 +223,30 @@ app.on('before-quit', () => {
   if (!timer.idle()) {
     timer.stop()
   }
+  watcher?.stop()
 })
+
+function startWatching() {
+  const w = createWatcher({
+    store: database(),
+    settings: () => settings().get(),
+    patch: changes => applySettings(changes),
+    readFrontApp,
+    readDomain,
+    browserFor,
+    idleSeconds: () => powerMonitor.getSystemIdleTime(),
+    now,
+    onHealth: next => broadcast('health', next),
+  })
+  watcher = w
+  const leave = () => w.suspend(now())
+  const arrive = () => w.resume(now())
+  powerMonitor.on('suspend', leave)
+  powerMonitor.on('lock-screen', leave)
+  powerMonitor.on('resume', arrive)
+  powerMonitor.on('unlock-screen', arrive)
+  w.start()
+}
 
 app.on('activate', () => {
   if (win && !win.isDestroyed()) {
@@ -213,8 +267,12 @@ app.whenReady().then(() => {
     )
   }
   guardContent()
-  nativeTheme.themeSource = settings().get().mode
+  const current = settings().get()
+  nativeTheme.themeSource = current.mode
+  app.setLoginItemSettings({ openAtLogin: current.launchAtLogin })
+  app.dock?.hide()
   tray = new Tray(nativeImage.createEmpty())
   setInterval(() => timer.tick(), 1000)
+  startWatching()
   createWindow()
 })

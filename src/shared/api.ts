@@ -1,6 +1,15 @@
 import type { Mode, Phase } from './session.ts'
+import type { BrowserAuth, Settings } from './settings.ts'
 
 export type { Mode, Phase }
+
+export type HealthState = 'recording' | 'paused' | 'error'
+export type HealthReason = 'automation-denied' | 'tracker-failed'
+
+export interface Health {
+  state: HealthState
+  reason?: HealthReason
+}
 
 export interface View {
   phase: Phase
@@ -29,4 +38,10 @@ export interface OdyApi {
   resume: () => Promise<void>
   stop: () => Promise<void>
   sessions: (from: number, to: number) => Promise<SessionRecord[]>
+  health: () => Promise<Health>
+  onHealth: (cb: (h: Health) => void) => void
+  settings: () => Promise<Settings>
+  patchSettings: (changes: Partial<Settings>) => Promise<Settings>
+  onSettings: (cb: (s: Settings) => void) => void
+  requestBrowserAuth: () => Promise<BrowserAuth>
 }
