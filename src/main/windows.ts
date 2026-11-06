@@ -1,4 +1,5 @@
 import { app, BrowserWindow, screen, type Rectangle } from 'electron'
+import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const PORTRAIT_RIGHT = 'portrait-right'
@@ -139,18 +140,60 @@ export function placeUnder(w: BrowserWindow, anchor?: Rectangle) {
   w.setPosition(x, y)
 }
 
-export function createActivityWindow() {
-  return harden(
-    new BrowserWindow({
-      ...centered(1040, 720),
-      minWidth: 760,
-      minHeight: 520,
-      titleBarStyle: 'hiddenInset',
-      backgroundColor: '#00000000',
-      vibrancy: 'sidebar',
-      visualEffectState: 'followWindow',
-      webPreferences: chrome(),
+const DEFAULT_WIDTH = 1024
+const DEFAULT_HEIGHT = 768
+
+const boundsFile = () => path.join(app.getPath('userData'), 'window-state.json')
+
+function savedBounds(): Rectangle | null {
+  if (process.env.ODY_QA_DISPLAY) {
+    return null
+  }
+  try {
+    const b = JSON.parse(readFileSync(boundsFile(), 'utf8')) as Rectangle
+    const visible = screen.getAllDisplays().some(d => {
+      const a = d.workArea
+      return (
+        b.x < a.x + a.width &&
+        b.x + b.width > a.x &&
+        b.y < a.y + a.height &&
+        b.y + b.height > a.y
+      )
     })
+    return visible && b.width >= 760 && b.height >= 520 ? b : null
+  } catch {
+    return null
+  }
+}
+
+function rememberBounds(w: BrowserWindow) {
+  w.on('close', () => {
+    if (w.isFullScreen() || w.isMinimized()) {
+      return
+    }
+    try {
+      writeFileSync(boundsFile(), JSON.stringify(w.getNormalBounds()))
+    } catch (e) {
+      console.error('window-state:', (e as Error).message)
+    }
+  })
+  return w
+}
+
+export function createActivityWindow() {
+  return rememberBounds(
+    harden(
+      new BrowserWindow({
+        ...(savedBounds() ?? centered(DEFAULT_WIDTH, DEFAULT_HEIGHT)),
+        minWidth: 760,
+        minHeight: 520,
+        titleBarStyle: 'hiddenInset',
+        backgroundColor: '#00000000',
+        vibrancy: 'sidebar',
+        visualEffectState: 'followWindow',
+        webPreferences: chrome(),
+      })
+    )
   )
 }
 

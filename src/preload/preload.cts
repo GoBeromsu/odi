@@ -39,6 +39,7 @@ const api: OdyApi = {
   openPrivacy: () => ipcRenderer.invoke('openPrivacy'),
   notifyStatus: () => ipcRenderer.invoke('notifyStatus'),
   grantAll: () => ipcRenderer.invoke('grantAll'),
+  grantStep: step => ipcRenderer.invoke('grantStep', step),
   finishOnboarding: skipped => ipcRenderer.invoke('finishOnboarding', skipped),
   onOnboardingStep: cb => {
     ipcRenderer.on('onboarding-step', (_e, progress) => cb(progress))

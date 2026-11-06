@@ -52,11 +52,23 @@ export async function askNotifications(
   run: (
     binary: string,
     command: NotifyCommand
-  ) => Promise<NotifyStatus> = runNotifyHelper
+  ) => Promise<NotifyStatus> = runNotifyHelper,
+  prompt?: () => void
 ) {
   const current = await run(binary, 'status')
-  if (current === 'notDetermined') {
+  if (current !== 'notDetermined') {
+    return current
+  }
+  if (!prompt) {
     return run(binary, 'request')
   }
-  return current
+  prompt()
+  for (let i = 0; i < 60; i++) {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    const next = await run(binary, 'status')
+    if (next !== 'notDetermined') {
+      return next
+    }
+  }
+  return 'notDetermined'
 }

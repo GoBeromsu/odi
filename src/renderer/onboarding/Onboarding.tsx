@@ -66,8 +66,10 @@ export function Onboarding() {
   const { t } = useT()
   const settings = useSettings()
   const [states, setStates] = useState(EMPTY)
-  const [done, setDone] = useState(false)
   const [running, setRunning] = useState(false)
+  const done = STEPS.every(
+    entry => states[entry.step] === 'granted' || states[entry.step] === 'denied'
+  )
 
   useEffect(() => {
     ody.onOnboardingStep(progress => {
@@ -79,7 +81,12 @@ export function Onboarding() {
     setRunning(true)
     await ody.grantAll()
     setRunning(false)
-    setDone(true)
+  }
+
+  const grant = async (step: OnboardingStep) => {
+    setRunning(true)
+    await ody.grantStep(step)
+    setRunning(false)
   }
 
   return (
@@ -103,22 +110,30 @@ export function Onboarding() {
 
       <ul className="onb-list" data-steps="">
         {STEPS.map(entry => (
-          <li className="onb-item" key={entry.step} data-step={entry.step}>
-            <span className="onb-icon">
-              <Icon of={entry.icon} />
-            </span>
-            <span className="onb-text">
-              <b>{t(entry.label)}</b>
-              <small>{t(entry.hint)}</small>
-            </span>
-            <span
-              className="onb-state"
-              data-state={states[entry.step]}
-              role="status"
+          <li key={entry.step}>
+            <button
+              type="button"
+              className="onb-item press"
+              data-step={entry.step}
+              disabled={running || states[entry.step] === 'granted'}
+              onClick={() => void grant(entry.step)}
             >
-              {states[entry.step] === 'granted' ? <Icon of={Check} /> : null}
-              {states[entry.step] === 'denied' ? <Icon of={Minus} /> : null}
-            </span>
+              <span className="onb-icon">
+                <Icon of={entry.icon} />
+              </span>
+              <span className="onb-text">
+                <b>{t(entry.label)}</b>
+                <small>{t(entry.hint)}</small>
+              </span>
+              <span
+                className="onb-state"
+                data-state={states[entry.step]}
+                role="status"
+              >
+                {states[entry.step] === 'granted' ? <Icon of={Check} /> : null}
+                {states[entry.step] === 'denied' ? <Icon of={Minus} /> : null}
+              </span>
+            </button>
           </li>
         ))}
       </ul>
